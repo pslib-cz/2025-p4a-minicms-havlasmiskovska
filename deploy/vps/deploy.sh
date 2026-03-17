@@ -45,13 +45,21 @@ docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" b
 
 docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" up -d --remove-orphans
 
-for i in {1..30}; do
+max_attempts=120
+for i in $(seq 1 "${max_attempts}"); do
   status="$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' minicms-app 2>/dev/null || true)"
-  if [[ "${status}" == "healthy" || "${status}" == "running" ]]; then
+  if [[ "${status}" == "healthy" ]]; then
     break
   fi
-  if [[ "${i}" -eq 30 ]]; then
-    echo "Container minicms-app did not become healthy in time."
+
+  http_code="$(docker exec minicms-app node -e "fetch('http://127.0.0.1:3000/').then((r)=>process.stdout.write(String(r.status))).catch(()=>process.stdout.write('000'))" 2>/dev/null || true)"
+  if [[ "${http_code}" =~ ^[0-9]{3}$ ]] && [[ "${http_code}" -lt 500 ]] && [[ "${http_code}" -ne 000 ]]; then
+    echo "Container minicms-app responded with HTTP ${http_code}; continuing deployment."
+    break
+  fi
+
+  if [[ "${i}" -eq "${max_attempts}" ]]; then
+    echo "Container minicms-app did not become ready in time."
     docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" logs --tail=120 app || true
     exit 1
   fi
