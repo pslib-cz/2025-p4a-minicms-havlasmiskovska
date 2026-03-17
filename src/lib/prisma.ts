@@ -1,8 +1,14 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import * as PrismaModule from "@prisma/client";
 import { Pool } from "pg";
+import type { PrismaClient as PrismaClientType } from "../../node_modules/.prisma/client/default";
 
-const PrismaClient = (PrismaModule as { PrismaClient?: any }).PrismaClient;
+type PrismaClientCtor = new (options?: {
+  adapter?: unknown;
+  log?: Array<"error" | "warn" | "info" | "query">;
+}) => PrismaClientType;
+
+const PrismaClient = (PrismaModule as unknown as { PrismaClient?: PrismaClientCtor }).PrismaClient;
 
 if (!PrismaClient) {
   throw new Error("PrismaClient export was not found. Run `npm run prisma:generate`.");
@@ -15,7 +21,7 @@ const adapter = new PrismaPg(
 );
 
 const globalForPrisma = globalThis as unknown as {
-  prisma?: InstanceType<typeof PrismaClient>;
+  prisma?: PrismaClientType;
 };
 
 export const prisma =
