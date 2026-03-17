@@ -46,25 +46,43 @@ docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" b
 docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" up -d --remove-orphans
 
 max_attempts=120
+ready=0
 for i in $(seq 1 "${max_attempts}"); do
-  status="$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' minicms-app 2>/dev/null || true)"
-  if [[ "${status}" == "healthy" ]]; then
-    break
+  running="$(docker inspect --format='{{.State.Running}}' minicms-app 2>/dev/null || echo false)"
+  health="$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' minicms-app 2>/dev/null || echo unknown)"
+
+  if [[ "${running}" != "true" ]]; then
+    sleep 2
+    continue
   fi
 
-  http_code="$(docker exec minicms-app node -e "fetch('http://127.0.0.1:3000/').then((r)=>process.stdout.write(String(r.status))).catch(()=>process.stdout.write('000'))" 2>/dev/null || true)"
+  if command -v curl >/dev/null 2>&1; then
+    http_code="$(curl -sS -o /dev/null -m 2 -w "%{http_code}" http://127.0.0.1:3000/ || echo 000)"
+  else
+    http_code="$(docker exec minicms-app node -e "fetch('http://127.0.0.1:3000/').then((r)=>process.stdout.write(String(r.status))).catch(()=>process.stdout.write('000'))" 2>/dev/null || echo 000)"
+  fi
+
   if [[ "${http_code}" =~ ^[0-9]{3}$ ]] && [[ "${http_code}" -lt 500 ]] && [[ "${http_code}" -ne 000 ]]; then
     echo "Container minicms-app responded with HTTP ${http_code}; continuing deployment."
+    ready=1
     break
   fi
 
-  if [[ "${i}" -eq "${max_attempts}" ]]; then
-    echo "Container minicms-app did not become ready in time."
-    docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" logs --tail=120 app || true
-    exit 1
+  if [[ "${health}" == "healthy" ]]; then
+    echo "Container minicms-app is healthy; continuing deployment."
+    ready=1
+    break
   fi
+
   sleep 2
 done
+
+if [[ "${ready}" -ne 1 ]]; then
+  echo "Container minicms-app did not become ready in time."
+  docker inspect minicms-app --format='running={{.State.Running}} status={{.State.Status}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' || true
+  docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" logs --tail=120 app || true
+  exit 1
+fi
 
 if [[ "${NGINX_MANAGED}" -eq 1 ]] && command -v nginx >/dev/null 2>&1; then
   nginx -t
