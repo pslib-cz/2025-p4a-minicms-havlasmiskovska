@@ -10,8 +10,19 @@ CERTBOT_EMAIL="${CERTBOT_EMAIL:-}"
 
 mkdir -p "${APP_DIR}"
 cp docker-compose.prod.yml "${APP_DIR}/docker-compose.yml"
-cp deploy/nginx/${NGINX_CONF_NAME} "${NGINX_AVAILABLE_DIR}/${NGINX_CONF_NAME}"
-ln -sfn "${NGINX_AVAILABLE_DIR}/${NGINX_CONF_NAME}" "${NGINX_ENABLED_DIR}/${NGINX_CONF_NAME}"
+
+if [[ -d "${NGINX_AVAILABLE_DIR}" ]]; then
+  cp "deploy/nginx/${NGINX_CONF_NAME}" "${NGINX_AVAILABLE_DIR}/${NGINX_CONF_NAME}"
+  if [[ -d "${NGINX_ENABLED_DIR}" ]]; then
+    ln -sfn "${NGINX_AVAILABLE_DIR}/${NGINX_CONF_NAME}" "${NGINX_ENABLED_DIR}/${NGINX_CONF_NAME}"
+  fi
+elif [[ -d "/etc/nginx/conf.d" ]]; then
+  echo "${NGINX_AVAILABLE_DIR} not found, using /etc/nginx/conf.d instead."
+  cp "deploy/nginx/${NGINX_CONF_NAME}" "/etc/nginx/conf.d/${NGINX_CONF_NAME}"
+else
+  echo "No supported nginx config directory found. Set NGINX_AVAILABLE_DIR and NGINX_ENABLED_DIR explicitly."
+  exit 1
+fi
 
 if [[ ! -f "${APP_DIR}/.env" ]]; then
   cp .env.production.example "${APP_DIR}/.env"
