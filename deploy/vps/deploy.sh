@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_DIR="${APP_DIR:-/opt/minicms-app}"
+APP_DIR="${APP_DIR:-/var/www/cms}"
 DOMAIN="${DOMAIN:-app.144-91-77-107.sslip.io}"
 NGINX_AVAILABLE_DIR="${NGINX_AVAILABLE_DIR:-/etc/nginx/sites-available}"
 NGINX_ENABLED_DIR="${NGINX_ENABLED_DIR:-/etc/nginx/sites-enabled}"
