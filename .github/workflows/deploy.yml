@@ -53,14 +53,17 @@ jobs:
         uses: appleboy/ssh-action@v1.2.0
         env:
           CERTBOT_EMAIL: ${{ secrets.CERTBOT_EMAIL }}
+          CERTBOT_DOMAINS: ${{ secrets.CERTBOT_DOMAINS }}
           ENV_FILE: ${{ secrets.ENV_FILE }}
           APP_DIR: /var/www/cms
+          DOMAIN: cms.144-91-77-107.sslip.io
+          NGINX_CONF_NAME: cms.144-91-77-107.sslip.io.conf
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           fingerprint: ${{ secrets.VPS_HOST_FINGERPRINT }}
-          envs: CERTBOT_EMAIL,ENV_FILE,APP_DIR
+          envs: CERTBOT_EMAIL,CERTBOT_DOMAINS,ENV_FILE,APP_DIR,DOMAIN,NGINX_CONF_NAME
           script: |
             set -euo pipefail
             sudo mkdir -p "${APP_DIR}"
@@ -72,4 +75,4 @@ jobs:
             printf '%s\n' "${ENV_FILE}" | sed 's/\r$//' | sudo tee "${APP_DIR}/.env" > /dev/null
 
             cd "${APP_DIR}"
-            sudo APP_DIR="${APP_DIR}" CERTBOT_EMAIL="${CERTBOT_EMAIL}" bash ./deploy/vps/deploy.sh
+            sudo APP_DIR="${APP_DIR}" DOMAIN="${DOMAIN}" NGINX_CONF_NAME="${NGINX_CONF_NAME}" CERTBOT_EMAIL="${CERTBOT_EMAIL}" CERTBOT_DOMAINS="${CERTBOT_DOMAINS}" bash ./deploy/vps/deploy.sh

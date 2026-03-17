@@ -2,11 +2,12 @@
 set -euo pipefail
 
 APP_DIR="${APP_DIR:-/var/www/cms}"
-DOMAIN="${DOMAIN:-app.144-91-77-107.sslip.io}"
+DOMAIN="${DOMAIN:-cms.144-91-77-107.sslip.io}"
 NGINX_AVAILABLE_DIR="${NGINX_AVAILABLE_DIR:-/etc/nginx/sites-available}"
 NGINX_ENABLED_DIR="${NGINX_ENABLED_DIR:-/etc/nginx/sites-enabled}"
-NGINX_CONF_NAME="${NGINX_CONF_NAME:-app.144-91-77-107.sslip.io.conf}"
+NGINX_CONF_NAME="${NGINX_CONF_NAME:-cms.144-91-77-107.sslip.io.conf}"
 CERTBOT_EMAIL="${CERTBOT_EMAIL:-}"
+CERTBOT_DOMAINS="${CERTBOT_DOMAINS:-${DOMAIN}}"
 NGINX_MANAGED=0
 
 mkdir -p "${APP_DIR}"
@@ -92,10 +93,20 @@ if [[ "${NGINX_MANAGED}" -eq 1 ]] && command -v nginx >/dev/null 2>&1; then
 fi
 
 if [[ -n "${CERTBOT_EMAIL}" ]] && [[ "${NGINX_MANAGED}" -eq 1 ]] && command -v certbot >/dev/null 2>&1; then
-  if certbot certificates | grep -q "Domains:.*${DOMAIN}"; then
-    certbot --nginx --non-interactive --agree-tos --email "${CERTBOT_EMAIL}" --expand -d "${DOMAIN}"
+  IFS=',' read -r -a cert_domains <<< "${CERTBOT_DOMAINS}"
+  certbot_domain_args=()
+  for domain in "${cert_domains[@]}"; do
+    if [[ -n "${domain}" ]]; then
+      certbot_domain_args+=("-d" "${domain}")
+    fi
+  done
+
+  if [[ ${#certbot_domain_args[@]} -eq 0 ]]; then
+    echo "No domains configured for certbot, skipping certbot step."
+  elif certbot certificates | grep -q "Domains:.*${cert_domains[0]}"; then
+    certbot --nginx --non-interactive --agree-tos --email "${CERTBOT_EMAIL}" --expand "${certbot_domain_args[@]}"
   else
-    certbot --nginx --non-interactive --agree-tos --email "${CERTBOT_EMAIL}" -d "${DOMAIN}"
+    certbot --nginx --non-interactive --agree-tos --email "${CERTBOT_EMAIL}" "${certbot_domain_args[@]}"
   fi
 elif [[ -n "${CERTBOT_EMAIL}" ]]; then
   echo "CERTBOT_EMAIL provided, but nginx/certbot auto-management is unavailable on this host; skipping certbot step."
