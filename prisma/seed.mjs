@@ -9,9 +9,23 @@ import { PrismaClient } from "@prisma/client";
 const { Pool } = pg;
 
 function resolveConnectionString() {
-  const url = process.env.DATABASE_URL;
+  const explicitUrl = process.env.DATABASE_URL;
+
+  let url = explicitUrl;
   if (!url) {
-    throw new Error("DATABASE_URL is not set.");
+    const user = process.env.POSTGRES_USER;
+    const password = process.env.POSTGRES_PASSWORD;
+    const db = process.env.POSTGRES_DB;
+    const host = process.env.POSTGRES_HOST ?? "127.0.0.1";
+    const port = process.env.POSTGRES_PORT_HOST ?? "5434";
+
+    if (user && password && db) {
+      url = `postgresql://${encodeURIComponent(user)}:${encodeURIComponent(password)}@${host}:${port}/${db}?schema=public`;
+    }
+  }
+
+  if (!url) {
+    throw new Error("DATABASE_URL is not set and could not be derived from POSTGRES_* variables.");
   }
 
   // In WSL, host.docker.internal may not resolve; localhost works for published ports.
