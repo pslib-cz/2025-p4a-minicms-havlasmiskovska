@@ -9,6 +9,8 @@ RUN npm ci
 
 FROM base AS builder
 ENV NEXT_TELEMETRY_DISABLED=1
+ARG DATABASE_URL=postgresql://build:build@127.0.0.1:5432/builddb?schema=public
+ENV DATABASE_URL=${DATABASE_URL}
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npx prisma generate && npm run build
