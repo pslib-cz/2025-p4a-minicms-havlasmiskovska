@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
-export default function LegacyDashboardPage() {
+export default function PrivateIndexPage() {
   redirect("/private/dashboard");
 }

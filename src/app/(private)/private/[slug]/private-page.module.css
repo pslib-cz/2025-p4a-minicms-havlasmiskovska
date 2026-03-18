@@ -1,0 +1,201 @@
+.page {
+  min-height: 100dvh;
+  padding: 2rem;
+}
+
+.container {
+  width: min(1360px, 100%);
+  margin: 0 auto;
+  display: grid;
+  gap: 1.25rem;
+}
+
+.header {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.kicker {
+  color: #0369a1;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.title {
+  color: #0f172a;
+  font-size: clamp(1.9rem, 3.3vw, 2.7rem);
+}
+
+.subtitle {
+  color: #334155;
+  max-width: 72ch;
+}
+
+.summaryGrid {
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.summaryCard {
+  background: #ffffff;
+  border: 1px solid #dbeafe;
+  border-radius: 16px;
+  box-shadow: 0 12px 36px rgba(15, 23, 42, 0.09);
+  padding: 0.95rem;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.summaryTitle {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.summaryValue {
+  color: #0c4a6e;
+  font-weight: 800;
+  font-size: 1.15rem;
+}
+
+.summaryTrend {
+  color: #475569;
+  font-size: 0.88rem;
+}
+
+.panelsStack {
+  display: grid;
+  gap: 1rem;
+}
+
+.panel {
+  background: #ffffff;
+  border: 1px solid #dbeafe;
+  border-radius: 20px;
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.1);
+  padding: 1.45rem;
+}
+
+.panelTopRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: baseline;
+}
+
+.panelTitle {
+  color: #0f172a;
+  font-size: clamp(1.2rem, 2vw, 1.55rem);
+}
+
+.metric {
+  color: #0c4a6e;
+  font-weight: 800;
+}
+
+.panelHint {
+  margin-top: 0.4rem;
+  color: #475569;
+}
+
+.trendRow {
+  margin-top: 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+}
+
+.trendBadge {
+  border-radius: 999px;
+  padding: 0.33rem 0.72rem;
+  font-size: 0.83rem;
+  font-weight: 700;
+}
+
+.trendUp {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.trendDown {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.trendFlat {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.trendDelta {
+  color: #334155;
+  font-weight: 700;
+}
+
+.chartWrap {
+  margin-top: 1rem;
+}
+
+.chart {
+  width: 100%;
+  height: auto;
+  display: block;
+  background: linear-gradient(180deg, #f8fafc, #ffffff);
+  border-radius: 14px;
+}
+
+.chartTickLabel {
+  fill: #475569;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.chartLabels {
+  margin-top: 0.38rem;
+  display: flex;
+  justify-content: space-between;
+  color: #475569;
+  font-size: 0.88rem;
+}
+
+.emptyState {
+  margin-top: 1rem;
+  color: #64748b;
+}
+
+.legend {
+  margin-top: 0.9rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: #334155;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.legendDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+@media (max-width: 900px) {
+  .page {
+    padding: 1.2rem;
+  }
+
+  .panelTopRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+  }
+}

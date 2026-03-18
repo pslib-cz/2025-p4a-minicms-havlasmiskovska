@@ -9,7 +9,7 @@ export default function LoginButton() {
 
   async function handleSignIn() {
     setLoading(true);
-    await signIn("github", { callbackUrl: "/dashboard" });
+    await signIn("github", { callbackUrl: "/private/dashboard" });
     setLoading(false);
   }
 

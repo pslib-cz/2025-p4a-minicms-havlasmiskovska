@@ -17,7 +17,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const oauthFailed = resolvedSearchParams.error === "OAuthCallback";
 
   if (session) {
-    redirect("/dashboard");
+    redirect("/private/dashboard");
   }
 
   return (

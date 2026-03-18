@@ -1,16 +1,12 @@
-require("dotenv/config");
+import "dotenv/config";
 
-const fs = require("node:fs");
-const path = require("node:path");
-const { PrismaPg } = require("@prisma/adapter-pg");
-const { Pool } = require("pg");
-const PrismaModule = require("@prisma/client");
+import fs from "node:fs";
+import path from "node:path";
+import { PrismaPg } from "@prisma/adapter-pg";
+import pg from "pg";
+import { PrismaClient } from "@prisma/client";
 
-const PrismaClient = PrismaModule.PrismaClient;
-
-if (!PrismaClient) {
-  throw new Error("PrismaClient export was not found. Run `npm run prisma:generate`.");
-}
+const { Pool } = pg;
 
 function resolveConnectionString() {
   const url = process.env.DATABASE_URL;

@@ -8,7 +8,7 @@ export default async function PublicHomePage() {
   const session = await getServerSession(authOptions);
 
   if (session) {
-    redirect("/dashboard");
+    redirect("/private/dashboard");
   }
 
   return (
@@ -24,7 +24,7 @@ export default async function PublicHomePage() {
           <Link href="/login" className={styles.primaryAction}>
             Go To Login
           </Link>
-          <Link href="/dashboard" className={styles.secondaryAction}>
+          <Link href="/private/dashboard" className={styles.secondaryAction}>
             Dashboard
           </Link>
         </div>
