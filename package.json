@@ -9,7 +9,13 @@
     "lint": "eslint",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
-    "prisma:migrate": "prisma migrate dev"
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:seed": "node prisma/seed.js",
+    "docker:dev": "docker compose -f docker-compose.dev.yml up",
+    "docker:dev:stop": "docker compose -f docker-compose.dev.yml down"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
   },
   "dependencies": {
     "@next-auth/prisma-adapter": "^1.0.7",

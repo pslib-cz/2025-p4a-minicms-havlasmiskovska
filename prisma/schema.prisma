@@ -15,6 +15,9 @@ model User {
   userProfilePK Int?      @unique
   accounts      Account[]
   sessions      Session[]
+  bodyBatteries BodyBattery[]
+  respirations  Respiration[]
+  stresses      Stress[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -56,79 +59,41 @@ model VerificationToken {
 }
 
 model BodyBattery {
-  pk_date                      DateTime
+  pk_date                      DateTime @db.Date
   userProfilePK                Int
-  calendarDate                 DateTime
-  bodyBatteryVersion           Float?
   chargedValue                 Int?
   drainedValue                 Int?
-  duringsleep_bodyBatteryStatus String?
-  duringsleep_statTimestamp    DateTime?
-  duringsleep_statsValue       Int?
-  endofday_bodyBatteryStatus   String?
-  endofday_statTimestamp       DateTime?
-  endofday_statsValue          Int?
-  highest_bodyBatteryStatus    String?
   highest_statTimestamp        DateTime?
   highest_statsValue           Int?
-  lowest_bodyBatteryStatus     String?
   lowest_statTimestamp         DateTime?
   lowest_statsValue            Int?
-  mostrecent_bodyBatteryStatus String?
-  mostrecent_statTimestamp     DateTime?
-  mostrecent_statsValue        Int?
-  sleepend_bodyBatteryStatus   String?
   sleepend_statTimestamp       DateTime?
   sleepend_statsValue          Int?
-  sleepstart_bodyBatteryStatus String?
   sleepstart_statTimestamp     DateTime?
   sleepstart_statsValue        Int?
-  startofday_bodyBatteryStatus String?
-  startofday_statTimestamp     DateTime?
-  startofday_statsValue        Int?
+  user                         User     @relation(fields: [userProfilePK], references: [userProfilePK], onDelete: Cascade)
 
   @@id([pk_date, userProfilePK])
-  @@index([calendarDate])
+  @@index([pk_date])
   @@map("body_battery")
 }
 
 model Respiration {
-  pk_date                  DateTime
-  userProfilePK            Int
-  calendarDate             DateTime
-  algorithmVersion         Float?
+  pk_date                   DateTime @db.Date
+  userProfilePK             Int
   avgWakingRespirationValue Float?
   highestRespirationValue  Float?
-  latestRespirationTimeGMT DateTime?
-  latestRespirationValue   Float?
   lowestRespirationValue   Float?
+  user                      User     @relation(fields: [userProfilePK], references: [userProfilePK], onDelete: Cascade)
 
   @@id([pk_date, userProfilePK])
-  @@index([calendarDate])
+  @@index([pk_date])
   @@map("respiration")
 }
 
 model Stress {
-  pk_date                             DateTime
+  pk_date                             DateTime @db.Date
   userProfilePK                       Int
-  calendarDate                        DateTime
-  asleep_activityDuration             Int?
-  asleep_averageStressLevel           Float?
-  asleep_averageStressLevelIntensity  Float?
-  asleep_highDuration                 Int?
-  asleep_lowDuration                  Int?
-  asleep_maxStressLevel               Int?
-  asleep_mediumDuration               Int?
-  asleep_restDuration                 Int?
-  asleep_stressDuration               Int?
-  asleep_stressIntensityCount         Int?
-  asleep_stressOffWristCount          Int?
-  asleep_stressTooActiveCount         Int?
-  asleep_totalDuration                Int?
-  asleep_totalStressCount             Int?
-  asleep_totalStressIntensity         Int?
-  asleep_uncategorizedDuration        Int?
-  awake_activityDuration              Int?
   awake_averageStressLevel            Float?
   awake_averageStressLevelIntensity   Float?
   awake_highDuration                  Int?
@@ -138,30 +103,12 @@ model Stress {
   awake_restDuration                  Int?
   awake_stressDuration                Int?
   awake_stressIntensityCount          Int?
-  awake_stressOffWristCount           Int?
-  awake_stressTooActiveCount          Int?
   awake_totalDuration                 Int?
   awake_totalStressCount              Int?
   awake_totalStressIntensity          Int?
-  awake_uncategorizedDuration         Int?
-  total_activityDuration              Int?
-  total_averageStressLevel            Float?
-  total_averageStressLevelIntensity   Float?
-  total_highDuration                  Int?
-  total_lowDuration                   Int?
-  total_maxStressLevel                Int?
-  total_mediumDuration                Int?
-  total_restDuration                  Int?
-  total_stressDuration                Int?
-  total_stressIntensityCount          Int?
-  total_stressOffWristCount           Int?
-  total_stressTooActiveCount          Int?
-  total_totalDuration                 Int?
-  total_totalStressCount              Int?
-  total_totalStressIntensity          Int?
-  total_uncategorizedDuration         Int?
+  user                                User     @relation(fields: [userProfilePK], references: [userProfilePK], onDelete: Cascade)
 
   @@id([pk_date, userProfilePK])
-  @@index([calendarDate])
+  @@index([pk_date])
   @@map("sress")
 }

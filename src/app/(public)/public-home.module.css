@@ -1,0 +1,77 @@
+.page {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  background:
+    radial-gradient(circle at 15% 10%, rgba(16, 185, 129, 0.2), transparent 35%),
+    radial-gradient(circle at 85% 85%, rgba(59, 130, 246, 0.2), transparent 30%),
+    linear-gradient(180deg, #f6f8fc 0%, #eef3f9 100%);
+}
+
+.card {
+  width: min(720px, 100%);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 22px;
+  box-shadow: 0 24px 70px rgba(2, 6, 23, 0.1);
+  backdrop-filter: blur(4px);
+  padding: 2.25rem;
+}
+
+.kicker {
+  color: #0f766e;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin-top: 0.8rem;
+  color: #0f172a;
+  font-size: clamp(1.9rem, 4vw, 2.7rem);
+  line-height: 1.12;
+}
+
+.subtitle {
+  margin-top: 0.9rem;
+  color: #334155;
+  font-size: 1rem;
+  line-height: 1.55;
+  max-width: 58ch;
+}
+
+.actions {
+  margin-top: 1.8rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+}
+
+.primaryAction,
+.secondaryAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0.78rem 1.2rem;
+  font-weight: 700;
+  transition: transform 140ms ease, box-shadow 140ms ease;
+}
+
+.primaryAction {
+  background: #0f766e;
+  color: #ffffff;
+  box-shadow: 0 10px 22px rgba(15, 118, 110, 0.35);
+}
+
+.secondaryAction {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.primaryAction:hover,
+.secondaryAction:hover {
+  transform: translateY(-1px);
+}

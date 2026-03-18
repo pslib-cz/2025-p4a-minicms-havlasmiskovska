@@ -1,0 +1,34 @@
+import Link from "next/link";
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
+import { authOptions } from "@/lib/auth";
+import styles from "./public-home.module.css";
+
+export default async function PublicHomePage() {
+  const session = await getServerSession(authOptions);
+
+  if (session) {
+    redirect("/dashboard");
+  }
+
+  return (
+    <main className={styles.page}>
+      <section className={styles.card}>
+        <p className={styles.kicker}>Mini CMS</p>
+        <h1 className={styles.title}>Health Snapshot Dashboard</h1>
+        <p className={styles.subtitle}>
+          Sign in to access private analytics and view your latest stress trend.
+        </p>
+
+        <div className={styles.actions}>
+          <Link href="/login" className={styles.primaryAction}>
+            Go To Login
+          </Link>
+          <Link href="/dashboard" className={styles.secondaryAction}>
+            Dashboard
+          </Link>
+        </div>
+      </section>
+    </main>
+  );
+}
