@@ -9,10 +9,12 @@
     "lint": "eslint",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
+    "prisma:push:vps": "sh -ac 'set -a; . ./.env; set +a; prisma db push'",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "node prisma/seed.mjs",
     "prisma:seed:once": "npm run prisma:generate && npm run prisma:push && npm run prisma:seed",
-    "prisma:seed:once:vps": "npm ci --include=dev && npm run prisma:seed:once",
+    "prisma:seed:vps": "sh -ac 'set -a; . ./.env; set +a; node prisma/seed.mjs'",
+    "prisma:seed:once:vps": "npm ci --include=dev && npm run prisma:generate && npm run prisma:push:vps && npm run prisma:seed:vps",
     "docker:dev": "docker compose -f docker-compose.dev.yml up",
     "docker:dev:stop": "docker compose -f docker-compose.dev.yml down"
   },
