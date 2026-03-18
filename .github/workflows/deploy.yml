@@ -55,6 +55,7 @@ jobs:
           CERTBOT_EMAIL: ${{ secrets.CERTBOT_EMAIL }}
           CERTBOT_DOMAINS: ${{ secrets.CERTBOT_DOMAINS }}
           ENV_FILE: ${{ secrets.ENV_FILE }}
+          DEPLOY_COMMIT: ${{ github.sha }}
           APP_DIR: /var/www/cms
           DOMAIN: cms.144-91-77-107.sslip.io
           NGINX_CONF_NAME: cms.144-91-77-107.sslip.io.conf
@@ -65,11 +66,21 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           fingerprint: ${{ secrets.VPS_HOST_FINGERPRINT }}
-          envs: CERTBOT_EMAIL,CERTBOT_DOMAINS,ENV_FILE,APP_DIR,DOMAIN,NGINX_CONF_NAME,NGINX_AVAILABLE_DIR,NGINX_ENABLED_DIR
+          envs: CERTBOT_EMAIL,CERTBOT_DOMAINS,ENV_FILE,DEPLOY_COMMIT,APP_DIR,DOMAIN,NGINX_CONF_NAME,NGINX_AVAILABLE_DIR,NGINX_ENABLED_DIR
           script: |
             set -euo pipefail
             sudo mkdir -p "${APP_DIR}"
-            sudo cp -r /tmp/minicms-deploy/* "${APP_DIR}/"
+
+            echo "Deploying commit: ${DEPLOY_COMMIT}"
+
+            # Clean app directory to avoid stale files from old commits while preserving .env.
+            sudo find "${APP_DIR}" -mindepth 1 -maxdepth 1 \
+              ! -name ".env" \
+              -exec rm -rf {} +
+
+            # Copy all files including dotfiles (e.g. .dockerignore) from staged deploy payload.
+            sudo cp -a /tmp/minicms-deploy/. "${APP_DIR}/"
+            printf '%s\n' "${DEPLOY_COMMIT}" | sudo tee "${APP_DIR}/.deploy-commit" > /dev/null
 
             sudo sed -i 's/\r$//' "${APP_DIR}/deploy/vps/deploy.sh"
             sudo chmod +x "${APP_DIR}/deploy/vps/deploy.sh"
