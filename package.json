@@ -12,6 +12,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "node prisma/seed.mjs",
     "prisma:seed:once": "npm run prisma:generate && npm run prisma:push && npm run prisma:seed",
+    "prisma:seed:once:vps": "npm ci --include=dev && npm run prisma:seed:once",
     "docker:dev": "docker compose -f docker-compose.dev.yml up",
     "docker:dev:stop": "docker compose -f docker-compose.dev.yml down"
   },
