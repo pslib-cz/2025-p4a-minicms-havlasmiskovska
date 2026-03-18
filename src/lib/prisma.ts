@@ -16,9 +16,9 @@ if (!PrismaClient) {
 }
 
 function resolveDatabaseUrl() {
-  const raw = process.env.DATABASE_URL;
+  const raw = process.env.DATABASE_URL_DOCKER ?? process.env.DATABASE_URL;
   if (!raw) {
-    throw new Error("DATABASE_URL is not set.");
+    throw new Error("Neither DATABASE_URL_DOCKER nor DATABASE_URL is set.");
   }
 
   try {
@@ -36,6 +36,12 @@ function resolveDatabaseUrl() {
       );
 
       return rewritten;
+    }
+
+    if (runningInDocker && parsed.hostname === "host.docker.internal" && parsed.port === "5434") {
+      console.warn(
+        "Using host.docker.internal:5434 from inside Docker. If Postgres is on default host port, use :5432 instead."
+      );
     }
   } catch {
     console.warn("DATABASE_URL is not a valid URL string; using value as-is.");
