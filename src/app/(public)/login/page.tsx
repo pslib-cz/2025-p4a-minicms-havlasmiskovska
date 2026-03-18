@@ -11,10 +11,33 @@ type LoginPageProps = {
   }>;
 };
 
+function getErrorMessage(errorCode: string | undefined) {
+  if (!errorCode) {
+    return null;
+  }
+
+  const knownMessages: Record<string, string> = {
+    OAuthSignin: "GitHub sign-in could not be started.",
+    OAuthCallback:
+      "OAuth callback failed. This usually means invalid GitHub credentials or callback mismatch.",
+    Callback:
+      "Sign-in callback failed on the server. Check application logs for the exact NextAuth error details.",
+    OAuthAccountNotLinked:
+      "This email is already linked to a different sign-in method.",
+    Configuration: "Authentication configuration is invalid on the server.",
+    AccessDenied: "Access denied.",
+    Verification: "Verification failed.",
+    Default: "Sign-in failed unexpectedly.",
+  };
+
+  return knownMessages[errorCode] ?? knownMessages.Default;
+}
+
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const session = await getServerSession(authOptions);
   const resolvedSearchParams = (await searchParams) ?? {};
-  const oauthFailed = resolvedSearchParams.error === "OAuthCallback";
+  const errorCode = resolvedSearchParams.error;
+  const errorMessage = getErrorMessage(errorCode);
 
   if (session) {
     redirect("/private/dashboard");
@@ -29,9 +52,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           This section is private. After authentication, you will be redirected to your dashboard.
         </p>
 
-        {oauthFailed ? (
+        {errorMessage ? (
           <p className={styles.errorBox}>
-            Login failed at OAuth callback. This usually means GitHub credentials are invalid for this environment.
+            {errorMessage}
+            {errorCode ? <span className={styles.errorCode}>Error code: {errorCode}</span> : null}
           </p>
         ) : null}
 

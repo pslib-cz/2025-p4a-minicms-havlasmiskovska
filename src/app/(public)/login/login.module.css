@@ -48,6 +48,13 @@
   line-height: 1.45;
 }
 
+.errorCode {
+  margin-top: 0.4rem;
+  display: block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: #7f1d1d;
+}
+
 .submitButton {
   margin-top: 1.3rem;
   width: 100%;
