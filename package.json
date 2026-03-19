@@ -1,43 +1,43 @@
 {
-  "name": "app",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint",
-    "prisma:generate": "prisma generate",
-    "prisma:push": "prisma db push",
-    "prisma:push:vps": "sh -ac 'set -a; . ./.env; set +a; prisma db push'",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:seed": "node prisma/seed.mjs",
-    "prisma:seed:once": "npm run prisma:generate && npm run prisma:push && npm run prisma:seed",
-    "prisma:seed:vps": "sh -ac 'set -a; . ./.env; set +a; node prisma/seed.mjs'",
-    "prisma:seed:once:vps": "npm ci --include=dev && npm run prisma:generate && npm run prisma:push:vps && npm run prisma:seed:vps",
-    "docker:dev": "docker compose -f docker-compose.dev.yml up",
-    "docker:dev:stop": "docker compose -f docker-compose.dev.yml down"
-  },
-  "prisma": {
-    "seed": "node prisma/seed.mjs"
-  },
-  "dependencies": {
-    "@next-auth/prisma-adapter": "^1.0.7",
-    "@prisma/adapter-pg": "^7.5.0",
-    "@prisma/client": "^7.5.0",
-    "next": "16.1.6",
-    "next-auth": "^4.24.13",
-    "pg": "^8.20.0",
-    "react": "19.2.3",
-    "react-dom": "19.2.3"
-  },
-  "devDependencies": {
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.1.6",
-    "prisma": "^7.5.0",
-    "typescript": "^5"
-  }
+    "name": "app",
+    "version": "0.1.0",
+    "private": true,
+    "scripts": {
+        "dev": "next dev",
+        "build": "next build",
+        "start": "next start",
+        "lint": "eslint",
+        "prisma:generate": "prisma generate",
+        "prisma:push": "prisma db push",
+        "prisma:push:vps": "sh -ac 'set -a; . ./.env; set +a; prisma db push'",
+        "prisma:migrate": "prisma migrate dev",
+        "prisma:seed": "node prisma/seed.mjs",
+        "prisma:seed:once": "npm run prisma:generate && npm run prisma:push && npm run prisma:seed",
+        "prisma:seed:vps": "sh -ac 'set -a; . ./.env; set +a; node prisma/seed.mjs'",
+        "prisma:seed:once:vps": "npm ci --include=dev && npm run prisma:generate && npm run prisma:push:vps && npm run prisma:seed:vps",
+        "docker:dev": "docker compose -f docker-compose.dev.yml up",
+        "docker:dev:stop": "docker compose -f docker-compose.dev.yml down"
+    },
+    "prisma": {
+        "seed": "node prisma/seed.mjs"
+    },
+    "dependencies": {
+        "@next-auth/prisma-adapter": "^1.0.7",
+        "@prisma/adapter-pg": "^7.5.0",
+        "@prisma/client": "^7.5.0",
+        "next": "16.1.6",
+        "next-auth": "^4.24.13",
+        "pg": "^8.20.0",
+        "react": "19.2.3",
+        "react-dom": "19.2.3"
+    },
+    "devDependencies": {
+        "@types/node": "^20",
+        "@types/react": "^19",
+        "@types/react-dom": "^19",
+        "eslint": "^9",
+        "eslint-config-next": "16.1.6",
+        "prisma": "^7.5.0",
+        "typescript": "^5"
+    }
 }
