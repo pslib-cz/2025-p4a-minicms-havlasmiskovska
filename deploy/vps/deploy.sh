@@ -58,7 +58,7 @@ for i in $(seq 1 "${max_attempts}"); do
   fi
 
   if command -v curl >/dev/null 2>&1; then
-    http_code="$(curl -sS -o /dev/null -m 2 -w "%{http_code}" http://127.0.0.1:3001/ || echo 000)"
+    http_code="$(curl -s -o /dev/null -m 2 -w "%{http_code}" http://127.0.0.1:3001/ 2>/dev/null || echo 000)"
   else
     http_code="$(docker exec minicms-app node -e "fetch('http://127.0.0.1:3000/').then((r)=>process.stdout.write(String(r.status))).catch(()=>process.stdout.write('000'))" 2>/dev/null || echo 000)"
   fi
