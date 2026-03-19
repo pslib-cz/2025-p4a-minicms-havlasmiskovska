@@ -1,91 +1,107 @@
 name: Deploy App to VPS
 
 on:
-  push:
-    branches: [main]
-  workflow_dispatch:
+    push:
+        branches: [main]
+    workflow_dispatch:
 
 concurrency:
-  group: deploy-production
-  cancel-in-progress: false
+    group: deploy-production
+    cancel-in-progress: false
 
 permissions:
-  contents: read
+    contents: read
 
 jobs:
-  preflight:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    preflight:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
 
-      - name: Use Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
+            - name: Use Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: "20"
+                  cache: "npm"
 
-      - name: Install dependencies
-        run: npm ci
+            - name: Install dependencies
+              run: npm ci
 
-      - name: Lint
-        run: npm run lint
+            - name: Lint
+              run: npm run lint
 
-  build-and-deploy:
-    runs-on: ubuntu-latest
-    needs: preflight
-    environment: production
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    build-and-deploy:
+        runs-on: ubuntu-latest
+        needs: preflight
+        environment: production
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
 
-      - name: Copy deployment files to VPS
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          fingerprint: ${{ secrets.VPS_HOST_FINGERPRINT }}
-          source: ".dockerignore,Dockerfile,docker-compose.prod.yml,next.config.ts,package.json,package-lock.json,tsconfig.json,prisma,public,src,deploy,data"
-          target: "/tmp/minicms-deploy"
+            - name: Prepare clean staging directory on VPS
+              uses: appleboy/ssh-action@v1.2.0
+              with:
+                  host: ${{ secrets.VPS_HOST }}
+                  username: ${{ secrets.VPS_USER }}
+                  key: ${{ secrets.VPS_SSH_KEY }}
+                  fingerprint: ${{ secrets.VPS_HOST_FINGERPRINT }}
+                  script: |
+                      set -euo pipefail
+                      rm -rf /tmp/minicms-deploy
+                      mkdir -p /tmp/minicms-deploy
 
-      - name: Deploy over SSH
-        uses: appleboy/ssh-action@v1.2.0
-        env:
-          CERTBOT_EMAIL: ${{ secrets.CERTBOT_EMAIL }}
-          CERTBOT_DOMAINS: ${{ secrets.CERTBOT_DOMAINS }}
-          ENV_FILE: ${{ secrets.ENV_FILE }}
-          DEPLOY_COMMIT: ${{ github.sha }}
-          APP_DIR: /var/www/cms
-          DOMAIN: cms.144-91-77-107.sslip.io
-          NGINX_CONF_NAME: cms.144-91-77-107.sslip.io.conf
-          NGINX_AVAILABLE_DIR: ${{ secrets.NGINX_AVAILABLE_DIR }}
-          NGINX_ENABLED_DIR: ${{ secrets.NGINX_ENABLED_DIR }}
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          fingerprint: ${{ secrets.VPS_HOST_FINGERPRINT }}
-          envs: CERTBOT_EMAIL,CERTBOT_DOMAINS,ENV_FILE,DEPLOY_COMMIT,APP_DIR,DOMAIN,NGINX_CONF_NAME,NGINX_AVAILABLE_DIR,NGINX_ENABLED_DIR
-          script: |
-            set -euo pipefail
-            sudo mkdir -p "${APP_DIR}"
+            - name: Copy deployment files to VPS
+              uses: appleboy/scp-action@v0.1.7
+              with:
+                  host: ${{ secrets.VPS_HOST }}
+                  username: ${{ secrets.VPS_USER }}
+                  key: ${{ secrets.VPS_SSH_KEY }}
+                  fingerprint: ${{ secrets.VPS_HOST_FINGERPRINT }}
+                  source: ".dockerignore,Dockerfile,docker-compose.prod.yml,next.config.ts,package.json,package-lock.json,tsconfig.json,prisma,public,src,deploy,data"
+                  target: "/tmp/minicms-deploy"
 
-            echo "Deploying commit: ${DEPLOY_COMMIT}"
+            - name: Deploy over SSH
+              uses: appleboy/ssh-action@v1.2.0
+              env:
+                  CERTBOT_EMAIL: ${{ secrets.CERTBOT_EMAIL }}
+                  CERTBOT_DOMAINS: ${{ secrets.CERTBOT_DOMAINS }}
+                  ENV_FILE: ${{ secrets.ENV_FILE }}
+                  DEPLOY_COMMIT: ${{ github.sha }}
+                  APP_DIR: /var/www/cms
+                  DOMAIN: cms.144-91-77-107.sslip.io
+                  NGINX_CONF_NAME: cms.144-91-77-107.sslip.io.conf
+                  NGINX_AVAILABLE_DIR: ${{ secrets.NGINX_AVAILABLE_DIR }}
+                  NGINX_ENABLED_DIR: ${{ secrets.NGINX_ENABLED_DIR }}
+              with:
+                  host: ${{ secrets.VPS_HOST }}
+                  username: ${{ secrets.VPS_USER }}
+                  key: ${{ secrets.VPS_SSH_KEY }}
+                  fingerprint: ${{ secrets.VPS_HOST_FINGERPRINT }}
+                  envs: CERTBOT_EMAIL,CERTBOT_DOMAINS,ENV_FILE,DEPLOY_COMMIT,APP_DIR,DOMAIN,NGINX_CONF_NAME,NGINX_AVAILABLE_DIR,NGINX_ENABLED_DIR
+                  script: |
+                      set -euo pipefail
+                      sudo mkdir -p "${APP_DIR}"
 
-            # Clean app directory to avoid stale files from old commits while preserving .env.
-            sudo find "${APP_DIR}" -mindepth 1 -maxdepth 1 \
-              ! -name ".env" \
-              -exec rm -rf {} +
+                      echo "Deploying commit: ${DEPLOY_COMMIT}"
 
-            # Copy all files including dotfiles (e.g. .dockerignore) from staged deploy payload.
-            sudo cp -a /tmp/minicms-deploy/. "${APP_DIR}/"
-            printf '%s\n' "${DEPLOY_COMMIT}" | sudo tee "${APP_DIR}/.deploy-commit" > /dev/null
+                      # Clean app directory to avoid stale files from old commits while preserving .env.
+                      sudo find "${APP_DIR}" -mindepth 1 -maxdepth 1 \
+                        ! -name ".env" \
+                        -exec rm -rf {} +
 
-            sudo sed -i 's/\r$//' "${APP_DIR}/deploy/vps/deploy.sh"
-            sudo chmod +x "${APP_DIR}/deploy/vps/deploy.sh"
+                      # Copy all files including dotfiles (e.g. .dockerignore) from staged deploy payload.
+                      test -f /tmp/minicms-deploy/package.json
+                      test -f '/tmp/minicms-deploy/src/app/(public)/page.tsx'
+                      test -f /tmp/minicms-deploy/deploy/vps/deploy.sh
 
-            printf '%s\n' "${ENV_FILE}" | sed 's/\r$//' | sudo tee "${APP_DIR}/.env" > /dev/null
+                      sudo cp -a /tmp/minicms-deploy/. "${APP_DIR}/"
+                      printf '%s\n' "${DEPLOY_COMMIT}" | sudo tee "${APP_DIR}/.deploy-commit" > /dev/null
 
-            cd "${APP_DIR}"
-            sudo APP_DIR="${APP_DIR}" DOMAIN="${DOMAIN}" NGINX_CONF_NAME="${NGINX_CONF_NAME}" NGINX_AVAILABLE_DIR="${NGINX_AVAILABLE_DIR}" NGINX_ENABLED_DIR="${NGINX_ENABLED_DIR}" CERTBOT_EMAIL="${CERTBOT_EMAIL}" CERTBOT_DOMAINS="${CERTBOT_DOMAINS}" bash ./deploy/vps/deploy.sh
+                      sudo sed -i 's/\r$//' "${APP_DIR}/deploy/vps/deploy.sh"
+                      sudo chmod +x "${APP_DIR}/deploy/vps/deploy.sh"
+
+                      printf '%s\n' "${ENV_FILE}" | sed 's/\r$//' | sudo tee "${APP_DIR}/.env" > /dev/null
+
+                      cd "${APP_DIR}"
+                      sudo APP_DIR="${APP_DIR}" DOMAIN="${DOMAIN}" NGINX_CONF_NAME="${NGINX_CONF_NAME}" NGINX_AVAILABLE_DIR="${NGINX_AVAILABLE_DIR}" NGINX_ENABLED_DIR="${NGINX_ENABLED_DIR}" CERTBOT_EMAIL="${CERTBOT_EMAIL}" CERTBOT_DOMAINS="${CERTBOT_DOMAINS}" bash ./deploy/vps/deploy.sh
