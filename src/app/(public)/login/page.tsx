@@ -61,6 +61,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
         <LoginButton />
 
+        <Link href="/register" className={styles.backLink}>
+          Go To Registration
+        </Link>
+
         <Link href="/" className={styles.backLink}>
           Back To Public Home
         </Link>

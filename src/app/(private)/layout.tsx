@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import PrivateSidebar from "./private-sidebar";
 import styles from "./private-shell.module.css";
 
@@ -13,6 +14,20 @@ export default async function PrivateLayout({
 
   if (!session) {
     redirect("/login");
+  }
+
+  const email = session.user?.email;
+  if (!email) {
+    redirect("/login?error=Callback");
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { email },
+    select: { userProfilePK: true },
+  });
+
+  if (!user?.userProfilePK) {
+    redirect("/register");
   }
 
   return (
