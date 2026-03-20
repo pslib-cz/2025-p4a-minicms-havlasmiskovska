@@ -9,16 +9,42 @@ type GitHubCredentials = {
 };
 
 function shouldPreferLocalGitHubCredentials() {
+    if (process.env.NODE_ENV === "production") {
+        return false;
+    }
+
     const rawUrl = process.env.NEXTAUTH_URL;
     if (!rawUrl) {
-        return process.env.NODE_ENV !== "production";
+        return true;
     }
 
     try {
         const hostname = new URL(rawUrl).hostname;
         return hostname === "localhost" || hostname === "127.0.0.1";
     } catch {
-        return process.env.NODE_ENV !== "production";
+        return true;
+    }
+}
+
+if (process.env.NODE_ENV === "production") {
+    const rawUrl = process.env.NEXTAUTH_URL;
+    if (!rawUrl) {
+        console.warn(
+            "NEXTAUTH_URL is not set in production. OAuth callback may fail.",
+        );
+    } else {
+        try {
+            const hostname = new URL(rawUrl).hostname;
+            if (hostname === "localhost" || hostname === "127.0.0.1") {
+                console.warn(
+                    "NEXTAUTH_URL points to localhost in production. Set NEXTAUTH_URL to your public HTTPS domain.",
+                );
+            }
+        } catch {
+            console.warn(
+                "NEXTAUTH_URL is not a valid URL in production. OAuth callback may fail.",
+            );
+        }
     }
 }
 

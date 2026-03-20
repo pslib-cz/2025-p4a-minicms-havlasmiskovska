@@ -40,6 +40,14 @@ if [[ ! -f "${APP_DIR}/.env" ]]; then
   echo "Created ${APP_DIR}/.env from .env.production.example. Edit it before first run if needed."
 fi
 
+nextauth_url="$(grep -E '^NEXTAUTH_URL=' "${APP_DIR}/.env" | tail -n1 | cut -d'=' -f2- || true)"
+if [[ -z "${nextauth_url}" ]]; then
+  echo "WARNING: NEXTAUTH_URL is missing in ${APP_DIR}/.env. NextAuth OAuth callback may fail."
+elif [[ "${nextauth_url}" =~ localhost|127\.0\.0\.1 ]]; then
+  echo "WARNING: NEXTAUTH_URL points to localhost in ${APP_DIR}/.env (${nextauth_url})."
+  echo "Set NEXTAUTH_URL to the public HTTPS domain (for example: https://${DOMAIN})."
+fi
+
 docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" config -q
 
 docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" build --pull
