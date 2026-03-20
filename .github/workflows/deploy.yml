@@ -101,7 +101,22 @@ jobs:
                       sudo sed -i 's/\r$//' "${APP_DIR}/deploy/vps/deploy.sh"
                       sudo chmod +x "${APP_DIR}/deploy/vps/deploy.sh"
 
-                      printf '%s\n' "${ENV_FILE}" | sed 's/\r$//' | sudo tee "${APP_DIR}/.env" > /dev/null
+                      # Build a clean .env from ENV_FILE secret. Keep blank lines, comments,
+                      # and KEY=VALUE assignments; drop accidental editor/status lines.
+                      printf '%s\n' "${ENV_FILE}" \
+                        | sed 's/\r$//' \
+                        | awk '
+                            /^[[:space:]]*$/ { print; next }
+                            /^[[:space:]]*#/ { print; next }
+                            /^[A-Za-z_][A-Za-z0-9_]*=.*/ { print; next }
+                          ' \
+                        | sudo tee "${APP_DIR}/.env" > /dev/null
+
+                      # Fail fast if required entries are missing after sanitization.
+                      grep -q '^POSTGRES_USER=' "${APP_DIR}/.env"
+                      grep -q '^POSTGRES_PASSWORD=' "${APP_DIR}/.env"
+                      grep -q '^POSTGRES_DB=' "${APP_DIR}/.env"
+                      grep -q '^NEXTAUTH_SECRET=' "${APP_DIR}/.env"
 
                       cd "${APP_DIR}"
                       sudo APP_DIR="${APP_DIR}" DOMAIN="${DOMAIN}" NGINX_CONF_NAME="${NGINX_CONF_NAME}" NGINX_AVAILABLE_DIR="${NGINX_AVAILABLE_DIR}" NGINX_ENABLED_DIR="${NGINX_ENABLED_DIR}" CERTBOT_EMAIL="${CERTBOT_EMAIL}" CERTBOT_DOMAINS="${CERTBOT_DOMAINS}" bash ./deploy/vps/deploy.sh
