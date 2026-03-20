@@ -58,7 +58,7 @@ jobs:
                   username: ${{ secrets.VPS_USER }}
                   key: ${{ secrets.VPS_SSH_KEY }}
                   fingerprint: ${{ secrets.VPS_HOST_FINGERPRINT }}
-                  source: ".dockerignore,Dockerfile,docker-compose.prod.yml,next.config.ts,package.json,package-lock.json,tsconfig.json,prisma,public,src,deploy,data"
+                  source: ".dockerignore,Dockerfile,docker-compose.prod.yml,next.config.ts,package.json,package-lock.json,prisma.config.ts,tsconfig.json,prisma,public,src,deploy,data"
                   target: "/tmp/minicms-deploy"
 
             - name: Deploy over SSH
@@ -92,6 +92,7 @@ jobs:
 
                       # Copy all files including dotfiles (e.g. .dockerignore) from staged deploy payload.
                       test -f /tmp/minicms-deploy/package.json
+                      test -f /tmp/minicms-deploy/prisma.config.ts
                       test -f '/tmp/minicms-deploy/src/app/(public)/page.tsx'
                       test -f /tmp/minicms-deploy/deploy/vps/deploy.sh
 
