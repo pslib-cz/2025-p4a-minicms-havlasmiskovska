@@ -15,11 +15,34 @@ model User {
   userProfilePK Int?      @unique
   accounts      Account[]
   sessions      Session[]
+  importantEvents ImportantEvent[]
   bodyBatteries BodyBattery[]
   respirations  Respiration[]
   stresses      Stress[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+}
+
+enum EventImpact {
+  POSITIVE
+  NEGATIVE
+}
+
+model ImportantEvent {
+  id             String      @id @default(cuid())
+  userProfilePK  Int
+  name           String
+  tags           String[]
+  expectedEffect EventImpact
+  descriptionHtml String
+  startDate      DateTime    @db.Date
+  endDate        DateTime    @db.Date
+  user           User        @relation(fields: [userProfilePK], references: [userProfilePK], onDelete: Cascade)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([userProfilePK, startDate, endDate])
+  @@map("important_event")
 }
 
 model Account {

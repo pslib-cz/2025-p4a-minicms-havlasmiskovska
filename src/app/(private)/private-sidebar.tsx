@@ -7,6 +7,7 @@ import styles from "./private-shell.module.css";
 
 const NAV_ITEMS = [
   { href: "/private/dashboard", label: "Dashboard" },
+  { href: "/private/events", label: "Important Days" },
   { href: "/private/add-day", label: "Add Day" },
   { href: "/private/stress", label: "Stress" },
   { href: "/private/body-battery", label: "Body Battery" },

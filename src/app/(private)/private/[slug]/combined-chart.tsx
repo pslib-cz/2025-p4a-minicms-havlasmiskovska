@@ -14,6 +14,12 @@ type CombinedChartProps = {
   series: CombinedSeries[];
   chartLabel: string;
   smoothingWindow?: number;
+  events?: Array<{
+    id: string;
+    name: string;
+    startDate: string;
+    effect: "positive" | "negative";
+  }>;
 };
 
 type NormalizedPoint = {
@@ -134,6 +140,7 @@ export default function CombinedChart({
   series,
   chartLabel,
   smoothingWindow = 7,
+  events = [],
 }: CombinedChartProps) {
   const width = 1200;
   const height = 360;
@@ -162,6 +169,20 @@ export default function CombinedChart({
 
   const toY = (value: number) => height - padding - (value / 100) * (height - padding * 2);
   const ticks = buildTicks(allTimestamps);
+  const eventLines = events
+    .map((event) => {
+      const timestamp = new Date(event.startDate).getTime();
+      if (Number.isNaN(timestamp)) {
+        return null;
+      }
+
+      return {
+        ...event,
+        timestamp,
+      };
+    })
+    .filter((event): event is { id: string; name: string; startDate: string; effect: "positive" | "negative"; timestamp: number } => event !== null)
+    .filter((event) => event.timestamp >= minTimestamp && event.timestamp <= maxTimestamp);
 
   return (
     <div className={styles.chartWrap}>
@@ -188,6 +209,28 @@ export default function CombinedChart({
               />
               <text x={x} y={tickLabelY} textAnchor={textAnchor} className={styles.chartTickLabel}>
                 {tick.label}
+              </text>
+            </g>
+          );
+        })}
+
+        {eventLines.map((event) => {
+          const x = toX(event.timestamp);
+          const markerColor = event.effect === "positive" ? "#15803d" : "#b91c1c";
+
+          return (
+            <g key={event.id}>
+              <line
+                x1={x}
+                y1={padding}
+                x2={x}
+                y2={height - padding}
+                stroke={markerColor}
+                strokeWidth="1.5"
+                strokeDasharray="6 5"
+              />
+              <text x={x + 4} y={padding + 12} className={styles.eventChartLabel} fill={markerColor}>
+                {event.name}
               </text>
             </g>
           );

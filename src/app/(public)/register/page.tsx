@@ -29,13 +29,43 @@ function getErrorMessage(errorCode: string | undefined) {
 
 export default async function RegisterPage({ searchParams }: RegisterPageProps) {
   const session = await getServerSession(authOptions);
+  const resolvedSearchParams = (await searchParams) ?? {};
+
   if (!session) {
-    redirect("/login");
+    return (
+      <main className={styles.page}>
+        <section className={styles.panel}>
+          <p className={styles.kicker}>Registration</p>
+          <h1 className={styles.title}>Sign In Required</h1>
+          <p className={styles.subtitle}>
+            Please sign in with GitHub first, then complete registration.
+          </p>
+
+          <Link href="/login" className={styles.backLink}>
+            Go To Login
+          </Link>
+        </section>
+      </main>
+    );
   }
 
   const email = session.user?.email;
   if (!email) {
-    redirect("/login?error=Callback");
+    return (
+      <main className={styles.page}>
+        <section className={styles.panel}>
+          <p className={styles.kicker}>Registration</p>
+          <h1 className={styles.title}>Email Not Available</h1>
+          <p className={styles.subtitle}>
+            Your OAuth account did not provide an email address, so we cannot finish registration.
+          </p>
+
+          <Link href="/login?error=Callback" className={styles.backLink}>
+            Back To Login
+          </Link>
+        </section>
+      </main>
+    );
   }
 
   const user = await prisma.user.findUnique({
@@ -51,7 +81,6 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
     redirect("/private/dashboard");
   }
 
-  const resolvedSearchParams = (await searchParams) ?? {};
   const errorCode = resolvedSearchParams.error;
   const errorMessage = getErrorMessage(errorCode);
 

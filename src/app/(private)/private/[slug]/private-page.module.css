@@ -153,6 +153,11 @@
   font-weight: 600;
 }
 
+.eventChartLabel {
+  font-size: 10px;
+  font-weight: 700;
+}
+
 .chartLabels {
   margin-top: 0.38rem;
   display: flex;
@@ -164,6 +169,20 @@
 .emptyState {
   margin-top: 1rem;
   color: #64748b;
+}
+
+.eventImpactList {
+  margin-top: 0.9rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.eventImpactItem {
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  padding: 0.6rem 0.7rem;
+  color: #334155;
+  background: #f8fafc;
 }
 
 .legend {

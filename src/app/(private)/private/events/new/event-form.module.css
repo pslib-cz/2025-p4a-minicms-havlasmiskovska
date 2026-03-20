@@ -1,0 +1,185 @@
+.page {
+  min-height: 100dvh;
+  padding: 2rem;
+}
+
+.container {
+  width: min(1360px, 100%);
+  margin: 0 auto;
+  display: grid;
+  gap: 1rem;
+}
+
+.header {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.kicker {
+  color: #0369a1;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.title {
+  color: #0f172a;
+  font-size: clamp(1.8rem, 3.2vw, 2.5rem);
+}
+
+.subtitle {
+  color: #334155;
+}
+
+.errorBox {
+  border: 1px solid #fca5a5;
+  background: #fff1f2;
+  color: #9f1239;
+  border-radius: 12px;
+  padding: 0.72rem 0.82rem;
+}
+
+.form {
+  display: grid;
+  gap: 1rem;
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid #dbeafe;
+  border-radius: 16px;
+  box-shadow: 0 12px 36px rgba(15, 23, 42, 0.09);
+  padding: 1rem;
+}
+
+.grid2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.field span {
+  color: #334155;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.field input {
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 0.58rem 0.68rem;
+}
+
+.impactFieldset {
+  margin-top: 0.9rem;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  padding: 0.65rem;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.impactFieldset legend {
+  color: #1e293b;
+  font-weight: 700;
+  padding: 0 0.2rem;
+}
+
+.impactFieldset label {
+  color: #334155;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.cardTitle {
+  color: #0f172a;
+}
+
+.editorHint {
+  margin-top: 0.35rem;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.editorWrap {
+  margin-top: 0.75rem;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.toolbar button {
+  border: 1px solid #bfdbfe;
+  background: #f8fafc;
+  color: #0f172a;
+  border-radius: 9px;
+  padding: 0.45rem 0.65rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.editor {
+  min-height: 220px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 0.75rem;
+  color: #0f172a;
+  background: #ffffff;
+}
+
+.editor :global(h1) {
+  font-size: 1.4rem;
+  margin: 0.45rem 0;
+}
+
+.editor :global(h2) {
+  font-size: 1.15rem;
+  margin: 0.35rem 0;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.submitButton {
+  border: none;
+  border-radius: 10px;
+  padding: 0.82rem 1rem;
+  background: linear-gradient(90deg, #0f172a, #1e293b);
+  color: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.backLink {
+  color: #0f766e;
+  font-weight: 700;
+}
+
+@media (max-width: 800px) {
+  .page {
+    padding: 1.2rem;
+  }
+
+  .grid2 {
+    grid-template-columns: 1fr;
+  }
+}

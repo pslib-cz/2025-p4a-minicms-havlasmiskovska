@@ -14,6 +14,12 @@ type MetricChartProps = {
   smoothingWindow?: number;
   colorStart?: string;
   colorEnd?: string;
+  events?: Array<{
+    id: string;
+    name: string;
+    startDate: string;
+    effect: "positive" | "negative";
+  }>;
 };
 
 type IndexedPoint = MetricPoint & {
@@ -125,6 +131,7 @@ export default function MetricChart({
   smoothingWindow = 7,
   colorStart = "#0284c7",
   colorEnd = "#16a34a",
+  events = [],
 }: MetricChartProps) {
   const width = 1200;
   const height = 360;
@@ -159,6 +166,29 @@ export default function MetricChart({
   const rawPath = buildPath(indexedPoints, toX, toY);
   const smoothPath = buildPath(smoothedPoints, toX, toY);
   const ticks = buildTicks(points);
+  const eventLines = events
+    .map((event) => {
+      const eventTime = new Date(event.startDate).getTime();
+      if (Number.isNaN(eventTime)) {
+        return null;
+      }
+
+      const index = points.findIndex((point) => {
+        const time = new Date(point.date).getTime();
+        return !Number.isNaN(time) && time >= eventTime;
+      });
+
+      const resolvedIndex = index >= 0 ? index : points.length - 1;
+      if (resolvedIndex < 0) {
+        return null;
+      }
+
+      return {
+        ...event,
+        index: resolvedIndex,
+      };
+    })
+    .filter((line): line is { id: string; name: string; startDate: string; effect: "positive" | "negative"; index: number } => line !== null);
 
   const firstLabel = points[0]?.date ?? "";
   const lastLabel = points[points.length - 1]?.date ?? "";
@@ -190,6 +220,28 @@ export default function MetricChart({
               />
               <text x={x} y={tickLabelY} textAnchor={textAnchor} className={styles.chartTickLabel}>
                 {tick.label}
+              </text>
+            </g>
+          );
+        })}
+
+        {eventLines.map((event) => {
+          const x = toX(event.index);
+          const markerColor = event.effect === "positive" ? "#15803d" : "#b91c1c";
+
+          return (
+            <g key={event.id}>
+              <line
+                x1={x}
+                y1={padding}
+                x2={x}
+                y2={height - padding}
+                stroke={markerColor}
+                strokeWidth="1.5"
+                strokeDasharray="6 5"
+              />
+              <text x={x + 4} y={padding + 12} className={styles.eventChartLabel} fill={markerColor}>
+                {event.name}
               </text>
             </g>
           );

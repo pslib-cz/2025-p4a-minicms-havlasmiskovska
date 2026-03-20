@@ -36,6 +36,22 @@ type MetricSeries = {
   bodyBattery: MetricPoint[];
 };
 
+type ImportantEventMarker = {
+  id: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  tags: string[];
+  effect: "positive" | "negative";
+};
+
+type EventImpactInsight = {
+  eventId: string;
+  eventName: string;
+  direction: "higher" | "lower";
+  percent: number;
+};
+
 const METRICS: MetricDescriptor[] = [
   {
     key: "stress",
@@ -184,6 +200,97 @@ async function getMetricSeries(email: string | null | undefined): Promise<Metric
   };
 }
 
+async function getImportantEvents(userProfilePK: number | null): Promise<ImportantEventMarker[]> {
+  if (userProfilePK === null) {
+    return [];
+  }
+
+  try {
+    const rows = await (prisma as any).importantEvent.findMany({
+      where: { userProfilePK },
+      orderBy: { startDate: "asc" },
+      select: {
+        id: true,
+        name: true,
+        tags: true,
+        expectedEffect: true,
+        startDate: true,
+        endDate: true,
+      },
+    });
+
+    return rows.map((row: any) => ({
+      id: row.id,
+      name: row.name,
+      tags: row.tags,
+      startDate: row.startDate.toISOString().slice(0, 10),
+      endDate: row.endDate.toISOString().slice(0, 10),
+      effect: row.expectedEffect === "POSITIVE" ? "positive" : "negative",
+    }));
+  } catch {
+    return [];
+  }
+}
+
+function averageInRange(points: MetricPoint[], start: Date, end: Date) {
+  const values = points
+    .filter((point) => {
+      const date = new Date(point.date);
+      return !Number.isNaN(date.getTime()) && date >= start && date <= end;
+    })
+    .map((point) => point.value)
+    .filter((value): value is number => value !== null);
+
+  if (values.length === 0) {
+    return null;
+  }
+
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function calculateEventImpactInsights(
+  points: MetricPoint[],
+  events: ImportantEventMarker[],
+): EventImpactInsight[] {
+  const insights: EventImpactInsight[] = [];
+
+  for (const event of events) {
+    const startDate = new Date(`${event.startDate}T00:00:00.000Z`);
+    const endDate = new Date(`${event.endDate}T00:00:00.000Z`);
+
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+      continue;
+    }
+
+    const beforeEnd = new Date(startDate);
+    beforeEnd.setUTCDate(beforeEnd.getUTCDate() - 1);
+    const beforeStart = new Date(beforeEnd);
+    beforeStart.setUTCDate(beforeStart.getUTCDate() - 6);
+
+    const afterStart = new Date(endDate);
+    afterStart.setUTCDate(afterStart.getUTCDate() + 1);
+    const afterEnd = new Date(afterStart);
+    afterEnd.setUTCDate(afterEnd.getUTCDate() + 6);
+
+    const beforeAvg = averageInRange(points, beforeStart, beforeEnd);
+    const afterAvg = averageInRange(points, afterStart, afterEnd);
+
+    if (beforeAvg === null || afterAvg === null || beforeAvg === 0) {
+      continue;
+    }
+
+    const delta = ((afterAvg - beforeAvg) / Math.abs(beforeAvg)) * 100;
+    insights.push({
+      eventId: event.id,
+      eventName: event.name,
+      direction: delta >= 0 ? "higher" : "lower",
+      percent: Math.abs(delta),
+    });
+  }
+
+  return insights.sort((a, b) => b.percent - a.percent).slice(0, 5);
+}
+
 function getOneYearSubset(points: MetricPoint[]): MetricPoint[] {
   const oneYearAgo = new Date();
   oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
@@ -306,7 +413,11 @@ export default async function PrivateSlugPage({ params }: PrivateSlugPageProps) 
     redirect("/login");
   }
 
-  const series = await getMetricSeries(session.user?.email);
+  const userProfilePK = await resolveTargetUserProfilePK(session.user?.email);
+  const [series, importantEvents] = await Promise.all([
+    getMetricSeries(session.user?.email),
+    getImportantEvents(userProfilePK),
+  ]);
 
   if (slug === "dashboard") {
     const oneYearSeries = METRICS.map((metric) => ({
@@ -359,6 +470,7 @@ export default async function PrivateSlugPage({ params }: PrivateSlugPageProps) 
                 series={oneYearSeries}
                 chartLabel="Combined one-year trend"
                 smoothingWindow={7}
+                events={importantEvents}
               />
             </article>
 
@@ -371,6 +483,7 @@ export default async function PrivateSlugPage({ params }: PrivateSlugPageProps) 
                 series={allTimeSeries}
                 chartLabel="Combined all-time trend"
                 smoothingWindow={21}
+                events={importantEvents}
               />
             </article>
           </section>
@@ -392,6 +505,7 @@ export default async function PrivateSlugPage({ params }: PrivateSlugPageProps) 
 
   const oneYearTrend = calculateTrend(oneYearPoints, metric);
   const allTrend = calculateTrend(allPoints, metric);
+  const impactInsights = calculateEventImpactInsights(allPoints, importantEvents);
 
   return (
     <main className={styles.page}>
@@ -418,6 +532,7 @@ export default async function PrivateSlugPage({ params }: PrivateSlugPageProps) 
               smoothingWindow={metric.oneYearSmoothing}
               colorStart={metric.colorStart}
               colorEnd={metric.colorEnd}
+              events={importantEvents}
             />
           </MetricPanel>
 
@@ -433,8 +548,28 @@ export default async function PrivateSlugPage({ params }: PrivateSlugPageProps) 
               smoothingWindow={metric.allTimeSmoothing}
               colorStart={metric.colorStart}
               colorEnd={metric.colorEnd}
+              events={importantEvents}
             />
           </MetricPanel>
+
+          <article className={styles.panel}>
+            <h2 className={styles.panelTitle}>Event Impact</h2>
+            <p className={styles.panelHint}>
+              Estimated 7-day average change after each important day.
+            </p>
+
+            {impactInsights.length === 0 ? (
+              <p className={styles.emptyState}>Not enough data around events to estimate impact yet.</p>
+            ) : (
+              <div className={styles.eventImpactList}>
+                {impactInsights.map((insight) => (
+                  <p key={insight.eventId} className={styles.eventImpactItem}>
+                    From event <strong>{insight.eventName}</strong>, your {metric.label.toLowerCase()} became {insight.direction} by {insight.percent.toFixed(1)}%.
+                  </p>
+                ))}
+              </div>
+            )}
+          </article>
         </section>
       </section>
     </main>
