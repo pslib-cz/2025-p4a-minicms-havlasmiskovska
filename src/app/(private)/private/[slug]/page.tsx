@@ -52,6 +52,32 @@ type EventImpactInsight = {
   percent: number;
 };
 
+type ImportantEventRow = {
+  id: string;
+  name: string;
+  tags: string[];
+  expectedEffect: "POSITIVE" | "NEGATIVE";
+  startDate: Date;
+  endDate: Date;
+};
+
+type PrismaWithImportantEventFindMany = {
+  importantEvent: {
+    findMany: (args: {
+      where: { userProfilePK: number };
+      orderBy: { startDate: "asc" | "desc" };
+      select: {
+        id: true;
+        name: true;
+        tags: true;
+        expectedEffect: true;
+        startDate: true;
+        endDate: true;
+      };
+    }) => Promise<ImportantEventRow[]>;
+  };
+};
+
 const METRICS: MetricDescriptor[] = [
   {
     key: "stress",
@@ -206,7 +232,8 @@ async function getImportantEvents(userProfilePK: number | null): Promise<Importa
   }
 
   try {
-    const rows = await (prisma as any).importantEvent.findMany({
+    const prismaWithImportantEvents = prisma as unknown as PrismaWithImportantEventFindMany;
+    const rows = await prismaWithImportantEvents.importantEvent.findMany({
       where: { userProfilePK },
       orderBy: { startDate: "asc" },
       select: {
@@ -219,7 +246,7 @@ async function getImportantEvents(userProfilePK: number | null): Promise<Importa
       },
     });
 
-    return rows.map((row: any) => ({
+    return rows.map((row) => ({
       id: row.id,
       name: row.name,
       tags: row.tags,

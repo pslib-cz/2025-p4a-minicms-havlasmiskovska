@@ -6,6 +6,22 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+type ImportantEventCreateData = {
+  userProfilePK: number;
+  name: string;
+  tags: string[];
+  expectedEffect: "POSITIVE" | "NEGATIVE";
+  descriptionHtml: string;
+  startDate: Date;
+  endDate: Date;
+};
+
+type PrismaWithImportantEventCreate = {
+  importantEvent: {
+    create: (args: { data: ImportantEventCreateData }) => Promise<unknown>;
+  };
+};
+
 function parseTags(value: FormDataEntryValue | null) {
   return String(value ?? "")
     .split(",")
@@ -66,7 +82,8 @@ export async function createImportantEvent(formData: FormData) {
     redirect("/private/events/new?error=EmptyDescription");
   }
 
-  await (prisma as any).importantEvent.create({
+  const prismaWithImportantEvents = prisma as unknown as PrismaWithImportantEventCreate;
+  await prismaWithImportantEvents.importantEvent.create({
     data: {
       userProfilePK: user.userProfilePK,
       name,

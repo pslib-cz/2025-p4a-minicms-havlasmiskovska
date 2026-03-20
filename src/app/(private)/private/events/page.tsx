@@ -11,6 +11,32 @@ type EventsPageProps = {
   }>;
 };
 
+type ImportantEventRow = {
+  id: string;
+  name: string;
+  tags: string[];
+  expectedEffect: "POSITIVE" | "NEGATIVE";
+  startDate: Date;
+  endDate: Date;
+};
+
+type PrismaWithImportantEventFindMany = {
+  importantEvent: {
+    findMany: (args: {
+      where: { userProfilePK: number };
+      orderBy: { startDate: "asc" | "desc" };
+      select: {
+        id: true;
+        name: true;
+        tags: true;
+        expectedEffect: true;
+        startDate: true;
+        endDate: true;
+      };
+    }) => Promise<ImportantEventRow[]>;
+  };
+};
+
 function toDateLabel(value: Date) {
   return value.toISOString().slice(0, 10);
 }
@@ -35,7 +61,8 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
     redirect("/register");
   }
 
-  const events = await (prisma as any).importantEvent.findMany({
+  const prismaWithImportantEvents = prisma as unknown as PrismaWithImportantEventFindMany;
+  const events = await prismaWithImportantEvents.importantEvent.findMany({
     where: { userProfilePK: user.userProfilePK },
     orderBy: { startDate: "desc" },
     select: {
@@ -73,7 +100,7 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
           {events.length === 0 ? (
             <p className={styles.emptyState}>No important days yet.</p>
           ) : (
-            events.map((event: any) => (
+            events.map((event) => (
               <article key={event.id} className={styles.card}>
                 <div className={styles.cardTop}>
                   <h2 className={styles.cardTitle}>{event.name}</h2>
