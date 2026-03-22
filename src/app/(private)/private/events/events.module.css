@@ -98,6 +98,17 @@
   color: #475569;
 }
 
+.stressInsight {
+  color: #0f172a;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.stressInsightMuted {
+  color: #64748b;
+  font-size: 0.88rem;
+}
+
 .tagsRow {
   display: flex;
   gap: 0.45rem;
@@ -110,6 +121,12 @@
   padding: 0.24rem 0.6rem;
   color: #1e3a8a;
   font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.detailLink {
+  justify-self: start;
+  color: #0f766e;
   font-weight: 700;
 }
 

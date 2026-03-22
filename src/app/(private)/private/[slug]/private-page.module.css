@@ -185,6 +185,27 @@
   background: #f8fafc;
 }
 
+.eventImpactTitle {
+  color: #0f172a;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.eventImpactSectionTitle {
+  margin-top: 0.45rem;
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.eventImpactConflict {
+  margin-top: 0.45rem;
+  border: 1px solid #fde68a;
+  background: #fffbeb;
+  color: #92400e;
+  border-radius: 8px;
+  padding: 0.45rem 0.55rem;
+}
+
 .legend {
   margin-top: 0.9rem;
   display: flex;
