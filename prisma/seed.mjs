@@ -59,6 +59,37 @@ const SYNTHETIC_USER = {
   email: "marija.miskovska.022@pslib.cz",
 };
 
+const JAKUB_IMPORTANT_DAYS = [
+  {
+    title: "GF",
+    slug: "gf-2025-12-11",
+    startDate: "2025-12-11",
+    endDate: "2025-12-11",
+    tags: ["relationship"],
+    expectedEffect: "POSITIVE",
+    visibility: "PUBLISHED",
+  },
+  {
+    title: "Konec s Dukliu",
+    slug: "konec-s-dukliu-2025-03-31",
+    startDate: "2025-03-31",
+    endDate: "2025-03-31",
+    tags: ["free time"],
+    expectedEffect: "NEGATIVE",
+    visibility: "NOT_PUBLIC",
+  },
+  {
+    title: "First day on hugh schoo",
+    
+    slug: "first-day-on-hugh-schoo-2022-09-04",
+    startDate: "2022-09-04",
+    endDate: "2022-09-04",
+    tags: ["school", "career"],
+    expectedEffect: "NEGATIVE",
+    visibility: "PUBLISHED",
+  },
+];
+
 const SYNTHETIC_YEARS = 4;
 
 const FILE_MODEL_MAP = {
@@ -620,6 +651,59 @@ function loadCsvRowsByFile(dataDir) {
   return result;
 }
 
+async function upsertImportantDaysForUser(userProfilePK) {
+  for (const item of JAKUB_IMPORTANT_DAYS) {
+    const startDate = new Date(`${item.startDate}T00:00:00.000Z`);
+    const endDate = new Date(`${item.endDate}T00:00:00.000Z`);
+
+    await prisma.importantEvent.upsert({
+      where: { slug: item.slug },
+      create: {
+        userProfilePK,
+        title: item.title,
+        name: item.title,
+        slug: item.slug,
+        publishDate: startDate,
+        tags: item.tags,
+        expectedEffect: item.expectedEffect,
+        visibility: item.visibility,
+        descriptionHtml: `<p>${item.title}</p>`,
+        startDate,
+        endDate,
+        categories: {
+          connectOrCreate: item.tags.map((tag) => ({
+            where: { slug: tag.toLowerCase().replace(/[^a-z0-9]+/g, "-") },
+            create: {
+              name: tag,
+              slug: tag.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+            },
+          })),
+        },
+      },
+      update: {
+        userProfilePK,
+        title: item.title,
+        name: item.title,
+        publishDate: startDate,
+        tags: item.tags,
+        expectedEffect: item.expectedEffect,
+        visibility: item.visibility,
+        startDate,
+        endDate,
+        categories: {
+          connectOrCreate: item.tags.map((tag) => ({
+            where: { slug: tag.toLowerCase().replace(/[^a-z0-9]+/g, "-") },
+            create: {
+              name: tag,
+              slug: tag.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+            },
+          })),
+        },
+      },
+    });
+  }
+}
+
 async function main() {
   const dataDir = path.join(process.cwd(), "data");
   if (!fs.existsSync(dataDir)) {
@@ -634,11 +718,30 @@ async function main() {
 
   console.log(`Seed user ready: ${user.email} (userProfilePK=${seededUserProfilePK})`);
 
+  await upsertImportantDaysForUser(seededUserProfilePK);
+  console.log(`Important days ready for ${SEEDED_USER.email}: ${JAKUB_IMPORTANT_DAYS.length} upserted.`);
+
   const syntheticUserProfilePK = await getSyntheticUserProfilePK(seededUserProfilePK, usedProfilePKs);
   const syntheticUser = await ensureUser(SYNTHETIC_USER, syntheticUserProfilePK);
   console.log(
     `Synthetic user ready: ${syntheticUser.email} (userProfilePK=${syntheticUserProfilePK})`
   );
+
+  await prisma.importantEvent.updateMany({
+    where: {
+      userProfilePK: { in: [seededUserProfilePK, syntheticUserProfilePK] },
+      NOT: { slug: "konec-s-dukliu-2025-03-31" },
+    },
+    data: { visibility: "PUBLISHED" },
+  });
+
+  await prisma.importantEvent.updateMany({
+    where: {
+      userProfilePK: { in: [seededUserProfilePK, syntheticUserProfilePK] },
+      slug: "konec-s-dukliu-2025-03-31",
+    },
+    data: { visibility: "NOT_PUBLIC" },
+  });
 
   const csvFiles = fs
     .readdirSync(dataDir)

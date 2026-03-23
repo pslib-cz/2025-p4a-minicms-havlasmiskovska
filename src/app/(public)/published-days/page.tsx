@@ -2,27 +2,34 @@ import { prisma } from "@/lib/prisma";
 import PublishedDaysList from "./published-days-list";
 import styles from "./published-days.module.css";
 
+export const dynamic = "force-dynamic";
+
 async function getAllPublishedEvents() {
-  const events = await prisma.importantEvent.findMany({
-    where: { visibility: "PUBLISHED" },
-    orderBy: { startDate: "desc" },
-    select: {
-      id: true,
-      name: true,
-      tags: true,
-      expectedEffect: true,
-      descriptionHtml: true,
-      startDate: true,
-      endDate: true,
-      user: {
-        select: {
-          name: true,
+  try {
+    const events = await prisma.importantEvent.findMany({
+      where: { visibility: "PUBLISHED" },
+      orderBy: { startDate: "desc" },
+      select: {
+        id: true,
+        name: true,
+        tags: true,
+        expectedEffect: true,
+        descriptionHtml: true,
+        startDate: true,
+        endDate: true,
+        user: {
+          select: {
+            name: true,
+          },
         },
       },
-    },
-  });
+    });
 
-  return events;
+    return events;
+  } catch (error) {
+    console.warn("published-days: DB unavailable, returning empty list", error);
+    return [];
+  }
 }
 
 export default async function PublishedDaysPage() {
