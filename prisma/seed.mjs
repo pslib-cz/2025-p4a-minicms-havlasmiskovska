@@ -54,6 +54,13 @@ const SEEDED_USER = {
   email: "jakub.havlas.022@pslib.cz",
 };
 
+const SYNTHETIC_USER = {
+  name: "Majka",
+  email: "marija.miskovska.022@pslib.cz",
+};
+
+const SYNTHETIC_YEARS = 4;
+
 const FILE_MODEL_MAP = {
   "body_battery.csv": {
     delegate: "bodyBattery",
@@ -190,6 +197,255 @@ function buildPrismaRows(parsedRows, fieldTypes, seededUserProfilePK) {
   });
 }
 
+function gaussianRandom() {
+  // Box-Muller transform.
+  let u = 0;
+  let v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+}
+
+function toUtcMidnight(date) {
+  const value = new Date(date);
+  value.setUTCHours(0, 0, 0, 0);
+  return value;
+}
+
+function pickRandom(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function dateDiffDays(a, b) {
+  const aMs = toUtcMidnight(a).getTime();
+  const bMs = toUtcMidnight(b).getTime();
+  return Math.round((aMs - bMs) / (24 * 60 * 60 * 1000));
+}
+
+function addDays(date, days) {
+  const value = new Date(date);
+  value.setUTCDate(value.getUTCDate() + days);
+  return value;
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function getNumericStats(rows, fields) {
+  const stats = {};
+
+  for (const field of fields) {
+    const values = rows
+      .map((row) => row[field])
+      .filter((value) => typeof value === "number" && Number.isFinite(value));
+
+    if (values.length === 0) {
+      stats[field] = {
+        min: 0,
+        max: 1,
+        span: 1,
+      };
+      continue;
+    }
+
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    stats[field] = {
+      min,
+      max,
+      span: Math.max(1, max - min),
+    };
+  }
+
+  return stats;
+}
+
+function perturbNumber(baseValue, type, fieldStat) {
+  if (baseValue === null || baseValue === undefined) {
+    return null;
+  }
+
+  const localScale = Math.max(Math.abs(baseValue) * 0.08, fieldStat.span * 0.06, 0.5);
+  const perturbed = baseValue + gaussianRandom() * localScale;
+
+  const padding = fieldStat.span * 0.08;
+  const minBound = fieldStat.min - padding;
+  const maxBound = fieldStat.max + padding;
+  const clamped = clamp(perturbed, minBound, maxBound);
+
+  if (type === "int") {
+    return Math.round(clamped);
+  }
+
+  return Number(clamped.toFixed(3));
+}
+
+function getTimeMinutes(dateValue) {
+  return dateValue.getUTCHours() * 60 + dateValue.getUTCMinutes();
+}
+
+function minutesToDate(targetDate, minutes) {
+  const clampedMinutes = clamp(minutes, 0, 23 * 60 + 59);
+  const result = toUtcMidnight(targetDate);
+  result.setUTCMinutes(clampedMinutes);
+  return result;
+}
+
+function perturbDateTime(templateDateTime, targetDate) {
+  if (!(templateDateTime instanceof Date)) {
+    return null;
+  }
+
+  const baseMinutes = getTimeMinutes(templateDateTime);
+  const minuteNoise = Math.round(gaussianRandom() * 45);
+  return minutesToDate(targetDate, baseMinutes + minuteNoise);
+}
+
+function normalizeRespirationRow(row) {
+  const values = [
+    row.lowestRespirationValue,
+    row.avgWakingRespirationValue,
+    row.highestRespirationValue,
+  ].filter((value) => typeof value === "number" && Number.isFinite(value));
+
+  if (values.length === 0) {
+    return row;
+  }
+
+  const low = Math.min(...values);
+  const high = Math.max(...values);
+  const avg = row.avgWakingRespirationValue ?? (low + high) / 2;
+
+  row.lowestRespirationValue = Number(low.toFixed(3));
+  row.highestRespirationValue = Number(high.toFixed(3));
+  row.avgWakingRespirationValue = Number(clamp(avg, low, high).toFixed(3));
+
+  return row;
+}
+
+function normalizeStressRow(row) {
+  const high = Math.max(0, Math.round(row.awake_highDuration ?? 0));
+  const medium = Math.max(0, Math.round(row.awake_mediumDuration ?? 0));
+  const low = Math.max(0, Math.round(row.awake_lowDuration ?? 0));
+  const rest = Math.max(0, Math.round(row.awake_restDuration ?? 0));
+
+  row.awake_highDuration = high;
+  row.awake_mediumDuration = medium;
+  row.awake_lowDuration = low;
+  row.awake_restDuration = rest;
+  row.awake_stressDuration = high + medium + low;
+  row.awake_totalDuration = row.awake_stressDuration + rest;
+
+  if (typeof row.awake_averageStressLevel === "number") {
+    row.awake_averageStressLevel = Number(clamp(row.awake_averageStressLevel, 0, 100).toFixed(3));
+  }
+
+  if (typeof row.awake_averageStressLevelIntensity === "number") {
+    row.awake_averageStressLevelIntensity = Number(clamp(row.awake_averageStressLevelIntensity, 0, 100).toFixed(3));
+  }
+
+  if (typeof row.awake_maxStressLevel === "number") {
+    row.awake_maxStressLevel = Math.round(clamp(row.awake_maxStressLevel, 0, 100));
+  }
+
+  if (typeof row.awake_totalStressCount === "number") {
+    row.awake_totalStressCount = Math.max(0, Math.round(row.awake_totalStressCount));
+  }
+
+  if (typeof row.awake_stressIntensityCount === "number") {
+    row.awake_stressIntensityCount = Math.max(0, Math.round(row.awake_stressIntensityCount));
+  }
+
+  if (typeof row.awake_totalStressIntensity === "number") {
+    row.awake_totalStressIntensity = Math.max(0, Math.round(row.awake_totalStressIntensity));
+  }
+
+  return row;
+}
+
+function normalizeBodyBatteryRow(row) {
+  if (typeof row.highest_statsValue === "number" && typeof row.lowest_statsValue === "number") {
+    if (row.lowest_statsValue > row.highest_statsValue) {
+      const temp = row.lowest_statsValue;
+      row.lowest_statsValue = row.highest_statsValue;
+      row.highest_statsValue = temp;
+    }
+  }
+
+  if (typeof row.sleepstart_statsValue === "number" && typeof row.sleepend_statsValue === "number") {
+    row.sleepstart_statsValue = Math.round(clamp(row.sleepstart_statsValue, 0, 100));
+    row.sleepend_statsValue = Math.round(clamp(row.sleepend_statsValue, 0, 100));
+  }
+
+  return row;
+}
+
+function buildSyntheticRowsForModel(modelConfig, sourceRows, userProfilePK, years = SYNTHETIC_YEARS) {
+  const fieldTypes = modelConfig.fieldTypes;
+  const numericFields = Object.entries(fieldTypes)
+    .filter(([field, type]) => type === "int" || type === "float")
+    .map(([field]) => field);
+  const stats = getNumericStats(sourceRows, numericFields);
+
+  const endDate = toUtcMidnight(new Date());
+  const startDate = new Date(endDate);
+  startDate.setUTCFullYear(startDate.getUTCFullYear() - years);
+
+  const totalDays = dateDiffDays(endDate, startDate) + 1;
+  const rows = [];
+
+  for (let dayIndex = 0; dayIndex < totalDays; dayIndex += 1) {
+    const targetDate = addDays(startDate, dayIndex);
+    const template = pickRandom(sourceRows);
+    const row = {
+      pk_date: targetDate,
+      userProfilePK,
+    };
+
+    for (const [field, type] of Object.entries(fieldTypes)) {
+      if (field === "pk_date" || field === "userProfilePK") {
+        continue;
+      }
+
+      const sourceValue = template[field];
+
+      if (type === "int" || type === "float") {
+        row[field] = perturbNumber(sourceValue, type, stats[field]);
+        continue;
+      }
+
+      if (type === "datetime") {
+        row[field] = perturbDateTime(sourceValue, targetDate);
+        continue;
+      }
+
+      if (type === "date") {
+        row[field] = targetDate;
+        continue;
+      }
+
+      row[field] = sourceValue;
+    }
+
+    if (modelConfig.delegate === "respiration") {
+      normalizeRespirationRow(row);
+    }
+
+    if (modelConfig.delegate === "stress") {
+      normalizeStressRow(row);
+    }
+
+    if (modelConfig.delegate === "bodyBattery") {
+      normalizeBodyBatteryRow(row);
+    }
+
+    rows.push(row);
+  }
+
+  return rows;
+}
+
 async function insertInChunks(delegateName, rows, chunkSize = 500) {
   let inserted = 0;
 
@@ -230,10 +486,14 @@ function getSeedUserProfilePK(dataDir) {
 }
 
 async function ensureSeedUser(seededUserProfilePK) {
+  return ensureUser(SEEDED_USER, seededUserProfilePK);
+}
+
+async function ensureUser(userConfig, userProfilePK) {
   return prisma.$transaction(async (tx) => {
     const [userByEmail, userByProfilePK] = await Promise.all([
-      tx.user.findUnique({ where: { email: SEEDED_USER.email } }),
-      tx.user.findUnique({ where: { userProfilePK: seededUserProfilePK } }),
+      tx.user.findUnique({ where: { email: userConfig.email } }),
+      tx.user.findUnique({ where: { userProfilePK } }),
     ]);
 
     // If email and profilePK point to different users, move profilePK to the requested seed user.
@@ -246,8 +506,8 @@ async function ensureSeedUser(seededUserProfilePK) {
       return tx.user.update({
         where: { id: userByEmail.id },
         data: {
-          name: SEEDED_USER.name,
-          userProfilePK: seededUserProfilePK,
+          name: userConfig.name,
+          userProfilePK,
         },
       });
     }
@@ -256,8 +516,8 @@ async function ensureSeedUser(seededUserProfilePK) {
       return tx.user.update({
         where: { id: userByProfilePK.id },
         data: {
-          name: SEEDED_USER.name,
-          email: SEEDED_USER.email,
+          name: userConfig.name,
+          email: userConfig.email,
         },
       });
     }
@@ -266,20 +526,98 @@ async function ensureSeedUser(seededUserProfilePK) {
       return tx.user.update({
         where: { id: userByEmail.id },
         data: {
-          name: SEEDED_USER.name,
-          userProfilePK: seededUserProfilePK,
+          name: userConfig.name,
+          userProfilePK,
         },
       });
     }
 
     return tx.user.create({
       data: {
-        name: SEEDED_USER.name,
-        email: SEEDED_USER.email,
-        userProfilePK: seededUserProfilePK,
+        name: userConfig.name,
+        email: userConfig.email,
+        userProfilePK,
       },
     });
   });
+}
+
+async function getSyntheticUserProfilePK(baseProfilePK, usedProfilePKs) {
+  const existingUser = await prisma.user.findUnique({
+    where: { email: SYNTHETIC_USER.email },
+    select: { userProfilePK: true },
+  });
+
+  if (existingUser?.userProfilePK) {
+    return existingUser.userProfilePK;
+  }
+
+  const usedInDb = await prisma.user.findMany({
+    where: { userProfilePK: { not: null } },
+    select: { userProfilePK: true },
+  });
+
+  const used = new Set(usedProfilePKs);
+  for (const row of usedInDb) {
+    if (typeof row.userProfilePK === "number") {
+      used.add(row.userProfilePK);
+    }
+  }
+
+  let candidate = baseProfilePK + 1;
+  while (used.has(candidate)) {
+    candidate += 1;
+  }
+
+  return candidate;
+}
+
+function collectUsedProfilePKsFromRows(rowsByFile) {
+  const used = new Set();
+
+  for (const rows of Object.values(rowsByFile)) {
+    for (const row of rows) {
+      const raw = row.userProfilePK;
+      if (typeof raw === "number" && Number.isFinite(raw) && raw > 0) {
+        used.add(raw);
+      }
+    }
+  }
+
+  return used;
+}
+
+function loadCsvRowsByFile(dataDir) {
+  const result = {};
+
+  const csvFiles = fs
+    .readdirSync(dataDir)
+    .filter((fileName) => fileName.toLowerCase().endsWith(".csv"));
+
+  for (const fileName of csvFiles) {
+    const fullPath = path.join(dataDir, fileName);
+    const content = fs.readFileSync(fullPath, "utf8");
+    const { rows } = parseCsv(content);
+
+    const modelConfig = FILE_MODEL_MAP[fileName];
+    if (!modelConfig || rows.length === 0) {
+      result[fileName] = [];
+      continue;
+    }
+
+    const allowedFields = Object.keys(modelConfig.fieldTypes);
+    result[fileName] = rows.map((csvRow) => {
+      const parsed = {};
+
+      for (const field of allowedFields) {
+        parsed[field] = castValue(csvRow[field] ?? "", modelConfig.fieldTypes[field]);
+      }
+
+      return parsed;
+    });
+  }
+
+  return result;
 }
 
 async function main() {
@@ -289,10 +627,18 @@ async function main() {
   }
 
   const seededUserProfilePK = getSeedUserProfilePK(dataDir);
+  const csvRowsByFile = loadCsvRowsByFile(dataDir);
+  const usedProfilePKs = collectUsedProfilePKsFromRows(csvRowsByFile);
 
   const user = await ensureSeedUser(seededUserProfilePK);
 
   console.log(`Seed user ready: ${user.email} (userProfilePK=${seededUserProfilePK})`);
+
+  const syntheticUserProfilePK = await getSyntheticUserProfilePK(seededUserProfilePK, usedProfilePKs);
+  const syntheticUser = await ensureUser(SYNTHETIC_USER, syntheticUserProfilePK);
+  console.log(
+    `Synthetic user ready: ${syntheticUser.email} (userProfilePK=${syntheticUserProfilePK})`
+  );
 
   const csvFiles = fs
     .readdirSync(dataDir)
@@ -310,19 +656,27 @@ async function main() {
       continue;
     }
 
-    const fullPath = path.join(dataDir, fileName);
-    const content = fs.readFileSync(fullPath, "utf8");
-    const { rows } = parseCsv(content);
+    const rows = csvRowsByFile[fileName] ?? [];
 
     if (rows.length === 0) {
       console.log(`Skipping ${fileName}: no rows.`);
       continue;
     }
 
-    const prismaRows = buildPrismaRows(rows, modelConfig.fieldTypes, seededUserProfilePK);
-    const inserted = await insertInChunks(modelConfig.delegate, prismaRows);
+    const originalRows = rows.map((row) => ({ ...row, userProfilePK: seededUserProfilePK }));
+    const insertedOriginal = await insertInChunks(modelConfig.delegate, originalRows);
 
-    console.log(`${fileName}: processed ${rows.length} rows, inserted ${inserted} new rows.`);
+    const syntheticRows = buildSyntheticRowsForModel(
+      modelConfig,
+      rows,
+      syntheticUserProfilePK,
+      SYNTHETIC_YEARS
+    );
+    const insertedSynthetic = await insertInChunks(modelConfig.delegate, syntheticRows);
+
+    console.log(
+      `${fileName}: original rows ${rows.length}, inserted ${insertedOriginal}; synthetic rows ${syntheticRows.length}, inserted ${insertedSynthetic}.`
+    );
   }
 }
 
