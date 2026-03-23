@@ -97,6 +97,15 @@ export default async function NewEventPage({ searchParams }: NewEventPageProps) 
                 <input type="radio" name="expectedEffect" value="NEGATIVE" defaultChecked /> Negative
               </label>
             </fieldset>
+
+            <label className={styles.field}>
+              <span>Visibility</span>
+              <select name="visibility" defaultValue="NOT_PUBLIC">
+                <option value="PRIVATE">Private</option>
+                <option value="NOT_PUBLIC">Not Public</option>
+                <option value="PUBLISHED">Published</option>
+              </select>
+            </label>
           </section>
 
           <section className={styles.card}>

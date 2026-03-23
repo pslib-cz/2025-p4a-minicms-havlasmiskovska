@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import VisibilitySelector from "./visibility-selector";
 import styles from "./event-detail.module.css";
 
 type EventDetailPageProps = {
@@ -313,6 +314,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
           name: true,
           tags: true,
           expectedEffect: true,
+          visibility: true,
           startDate: true,
           endDate: true,
           descriptionHtml: true,
@@ -469,6 +471,8 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
             <span className={styles.metaLabel}>Expected effect:</span>{" "}
             {event.expectedEffect === "POSITIVE" ? "Positive" : "Negative"}
           </p>
+
+          <VisibilitySelector eventId={event.id} currentVisibility={event.visibility} />
 
           <p className={styles.insightMuted}>
             Multi-horizon impact details are available below for stress, respiration, and body battery.

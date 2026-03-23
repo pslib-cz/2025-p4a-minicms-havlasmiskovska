@@ -28,21 +28,45 @@ enum EventImpact {
   NEGATIVE
 }
 
+enum EventVisibility {
+  PUBLISHED
+  NOT_PUBLIC
+  PRIVATE
+}
+
 model ImportantEvent {
-  id             String      @id @default(cuid())
+  id             String           @id @default(cuid())
   userProfilePK  Int
+  title          String
   name           String
+  slug           String           @unique
+  publishDate    DateTime         @db.Date @default(now())
   tags           String[]
   expectedEffect EventImpact
+  visibility     EventVisibility  @default(NOT_PUBLIC)
   descriptionHtml String
   startDate      DateTime    @db.Date
   endDate        DateTime    @db.Date
+  categories     Category[]
   user           User        @relation(fields: [userProfilePK], references: [userProfilePK], onDelete: Cascade)
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
 
   @@index([userProfilePK, startDate, endDate])
+  @@index([visibility])
+  @@index([publishDate])
   @@map("important_event")
+}
+
+model Category {
+  id        String           @id @default(cuid())
+  name      String
+  slug      String           @unique
+  events    ImportantEvent[]
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@map("category")
 }
 
 model Account {

@@ -31,6 +31,12 @@ export default async function PublicHomePage() {
                     >
                         Dashboard
                     </Link>
+                    <Link
+                        href="/published-days"
+                        className={styles.secondaryAction}
+                    >
+                        Published Important Days
+                    </Link>
                 </div>
             </section>
         </main>

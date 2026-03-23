@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import type { EventVisibility } from "@prisma/client";
 
 function parseTags(value: FormDataEntryValue | null) {
   return String(value ?? "")
@@ -25,6 +26,36 @@ function parseDate(value: FormDataEntryValue | null) {
 
 function htmlToText(html: string) {
   return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+}
+
+async function createUniqueEventSlug(title: string) {
+  const base = slugify(title) || "event";
+
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const suffix = attempt === 0 ? "" : `-${Math.random().toString(36).slice(2, 7)}`;
+    const candidate = `${base}${suffix}`;
+
+    const existing = await prisma.importantEvent.findUnique({
+      where: { slug: candidate },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      return candidate;
+    }
+  }
+
+  return `${base}-${Date.now()}`;
 }
 
 export async function createImportantEvent(formData: FormData) {
@@ -49,6 +80,9 @@ export async function createImportantEvent(formData: FormData) {
   const expectedEffect = String(formData.get("expectedEffect") ?? "NEGATIVE") === "POSITIVE"
     ? "POSITIVE"
     : "NEGATIVE";
+  const visibility = String(formData.get("visibility") ?? "NOT_PUBLIC");
+  const validVisibilities = ["PUBLISHED", "NOT_PUBLIC", "PRIVATE"];
+  const finalVisibility = validVisibilities.includes(visibility) ? visibility : "NOT_PUBLIC";
 
   const startDate = parseDate(formData.get("startDate"));
   const endDate = parseDate(formData.get("endDate")) ?? startDate;
@@ -66,17 +100,36 @@ export async function createImportantEvent(formData: FormData) {
     redirect("/private/events/new?error=EmptyDescription");
   }
 
+  const slug = await createUniqueEventSlug(name);
+  const categoryConnectOrCreate = tags.map((tag) => {
+    const normalized = slugify(tag) || "category";
+    return {
+      where: { slug: normalized },
+      create: {
+        name: tag,
+        slug: normalized,
+      },
+    };
+  });
+
   await prisma.user.update({
     where: { userProfilePK: user.userProfilePK },
     data: {
       importantEvents: {
         create: {
+          title: name,
           name,
+          slug,
+          publishDate: startDate,
           tags,
           expectedEffect,
+          visibility: finalVisibility as EventVisibility,
           descriptionHtml,
           startDate,
           endDate,
+          categories: {
+            connectOrCreate: categoryConnectOrCreate,
+          },
         },
       },
     },
