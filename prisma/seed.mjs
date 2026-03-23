@@ -729,7 +729,14 @@ async function main() {
 
   await prisma.importantEvent.updateMany({
     where: {
-      userProfilePK: { in: [seededUserProfilePK, syntheticUserProfilePK] },
+      userProfilePK: syntheticUserProfilePK,
+    },
+    data: { visibility: "PUBLISHED" },
+  });
+
+  await prisma.importantEvent.updateMany({
+    where: {
+      userProfilePK: seededUserProfilePK,
       NOT: { slug: "konec-s-dukliu-2025-03-31" },
     },
     data: { visibility: "PUBLISHED" },
@@ -737,7 +744,7 @@ async function main() {
 
   await prisma.importantEvent.updateMany({
     where: {
-      userProfilePK: { in: [seededUserProfilePK, syntheticUserProfilePK] },
+      userProfilePK: seededUserProfilePK,
       slug: "konec-s-dukliu-2025-03-31",
     },
     data: { visibility: "NOT_PUBLIC" },

@@ -16,7 +16,8 @@
         "prisma:seed:vps": "sh -ac 'set -a; . ./.env; set +a; node prisma/seed.mjs'",
         "prisma:seed:once:vps": "npm ci --include=dev && npm run prisma:generate && npm run prisma:push:vps && npm run prisma:seed:vps",
         "docker:dev": "docker compose -f docker-compose.dev.yml up",
-        "docker:dev:stop": "docker compose -f docker-compose.dev.yml down"
+        "docker:dev:stop": "docker compose -f docker-compose.dev.yml down",
+        "reseed": " docker compose down -v && docker compose up -d && npm run prisma:seed:once:vps"
     },
     "prisma": {
         "seed": "node prisma/seed.mjs"

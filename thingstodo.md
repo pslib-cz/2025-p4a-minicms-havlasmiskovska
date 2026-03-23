@@ -21,12 +21,14 @@
 - Add content delete functionality.
 
 ## API (Route Handlers)
-- Implement full CRUD Route Handlers for the main content entity (`ImportantEvent`):
-  - `GET` list/detail
-  - `POST` create
-  - `PUT/PATCH` edit
-  - `DELETE` remove
-- Keep auth/session checks, ownership checks, and server-side validation in all CRUD handlers.
+- Done: Full CRUD Route Handlers for `ImportantEvent` are implemented.
+  - `GET` list: `/api/events`
+  - `GET` detail: `/api/events/[id]`
+  - `POST` create: `/api/events`
+  - `PUT` update: `/api/events/[id]`
+  - `PATCH` partial update: `/api/events/[id]`
+  - `DELETE` remove: `/api/events/[id]`
+- Done: auth/session checks, ownership checks, and server-side validation are enforced in all CRUD handlers.
 
 ## UI library requirement
 - Integrate one required UI component library (React Bootstrap, PrimeReact, Mantine, MUI, Ant Design, Fluent UI, NextUI, or Carbon).
