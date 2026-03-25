@@ -76,6 +76,23 @@ jobs:
                   envs: ENV_FILE,DEPLOY_COMMIT,APP_DIR,DOMAIN
                   script: |
                       set -euo pipefail
+
+                      require_file() {
+                        local file_path="$1"
+                        if [[ ! -f "${file_path}" ]]; then
+                          echo "ERROR: Required deploy file is missing: ${file_path}" >&2
+                          exit 1
+                        fi
+                      }
+
+                      require_env() {
+                        local key="$1"
+                        if ! grep -q "^${key}=" "${APP_DIR}/.env"; then
+                          echo "ERROR: Required .env entry is missing after sanitization: ${key}" >&2
+                          exit 1
+                        fi
+                      }
+
                       sudo mkdir -p "${APP_DIR}"
 
                       echo "Deploying commit: ${DEPLOY_COMMIT}"
@@ -86,10 +103,10 @@ jobs:
                         -exec rm -rf {} +
 
                       # Copy all files including dotfiles (e.g. .dockerignore) from staged deploy payload.
-                      test -f /tmp/minicms-deploy/package.json
-                      test -f /tmp/minicms-deploy/prisma.config.ts
-                      test -f '/tmp/minicms-deploy/src/app/(public)/page.tsx'
-                      test -f /tmp/minicms-deploy/deploy/vps/deploy.sh
+                      require_file /tmp/minicms-deploy/package.json
+                      require_file /tmp/minicms-deploy/prisma.config.ts
+                      require_file '/tmp/minicms-deploy/src/app/(public)/page.tsx'
+                      require_file /tmp/minicms-deploy/deploy/vps/deploy.sh
 
                       sudo cp -a /tmp/minicms-deploy/. "${APP_DIR}/"
                       printf '%s\n' "${DEPLOY_COMMIT}" | sudo tee "${APP_DIR}/.deploy-commit" > /dev/null
@@ -109,10 +126,10 @@ jobs:
                         | sudo tee "${APP_DIR}/.env" > /dev/null
 
                       # Fail fast if required entries are missing after sanitization.
-                      grep -q '^POSTGRES_USER=' "${APP_DIR}/.env"
-                      grep -q '^POSTGRES_PASSWORD=' "${APP_DIR}/.env"
-                      grep -q '^POSTGRES_DB=' "${APP_DIR}/.env"
-                      grep -q '^NEXTAUTH_SECRET=' "${APP_DIR}/.env"
+                      require_env POSTGRES_USER
+                      require_env POSTGRES_PASSWORD
+                      require_env POSTGRES_DB
+                      require_env NEXTAUTH_SECRET
 
                       cd "${APP_DIR}"
                       sudo APP_DIR="${APP_DIR}" DOMAIN="${DOMAIN}" bash ./deploy/vps/deploy.sh
