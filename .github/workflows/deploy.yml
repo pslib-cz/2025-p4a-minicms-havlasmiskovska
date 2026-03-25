@@ -106,13 +106,9 @@ jobs:
                       require_file /tmp/minicms-deploy/package.json
                       require_file /tmp/minicms-deploy/prisma.config.ts
                       require_file '/tmp/minicms-deploy/src/app/(public)/page.tsx'
-                      require_file /tmp/minicms-deploy/deploy/vps/deploy.sh
 
                       sudo cp -a /tmp/minicms-deploy/. "${APP_DIR}/"
                       printf '%s\n' "${DEPLOY_COMMIT}" | sudo tee "${APP_DIR}/.deploy-commit" > /dev/null
-
-                      sudo sed -i 's/\r$//' "${APP_DIR}/deploy/vps/deploy.sh"
-                      sudo chmod +x "${APP_DIR}/deploy/vps/deploy.sh"
 
                       # Build a clean .env from ENV_FILE secret. Keep blank lines, comments,
                       # and KEY=VALUE assignments; drop accidental editor/status lines.
@@ -131,5 +127,61 @@ jobs:
                       require_env POSTGRES_DB
                       require_env NEXTAUTH_SECRET
 
-                      cd "${APP_DIR}"
-                      sudo APP_DIR="${APP_DIR}" DOMAIN="${DOMAIN}" bash ./deploy/vps/deploy.sh
+                      # Copy docker-compose config and prepare deployment
+                      sudo cp "${APP_DIR}/docker-compose.prod.yml" "${APP_DIR}/docker-compose.yml"
+
+                      # Check NEXTAUTH_URL configuration
+                      nextauth_url="$(sudo grep -E '^NEXTAUTH_URL=' "${APP_DIR}/.env" | tail -n1 | cut -d'=' -f2- || true)"
+                      if [[ -z "${nextauth_url}" ]]; then
+                          echo "WARNING: NEXTAUTH_URL is missing in ${APP_DIR}/.env. NextAuth OAuth callback may fail."
+                      elif [[ "${nextauth_url}" =~ localhost|127\.0\.0\.1 ]]; then
+                          echo "WARNING: NEXTAUTH_URL points to localhost in ${APP_DIR}/.env (${nextauth_url})."
+                          echo "Set NEXTAUTH_URL to the public HTTPS domain (for example: https://${DOMAIN})."
+                      fi
+
+                      # Build and deploy Docker containers
+                      sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" config -q
+                      sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" build --pull
+                      sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" up -d --remove-orphans
+
+                      # Wait for app readiness
+                      max_attempts=120
+                      ready=0
+                      for i in $(seq 1 "${max_attempts}"); do
+                        running="$(sudo docker inspect --format='{{.State.Running}}' minicms-app 2>/dev/null || echo false)"
+                        health="$(sudo docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' minicms-app 2>/dev/null || echo unknown)"
+
+                        if [[ "${running}" != "true" ]]; then
+                          sleep 2
+                          continue
+                        fi
+
+                        if command -v curl >/dev/null 2>&1; then
+                          http_code="$(curl -s -o /dev/null -m 2 -w "%{http_code}" http://127.0.0.1:3001/ 2>/dev/null || echo 000)"
+                        else
+                          http_code="$(sudo docker exec minicms-app node -e "fetch('http://127.0.0.1:3000/').then((r)=>process.stdout.write(String(r.status))).catch(()=>process.stdout.write('000'))" 2>/dev/null || echo 000)"
+                        fi
+
+                        if [[ "${http_code}" =~ ^[0-9]{3}$ ]] && [[ "${http_code}" -lt 500 ]] && [[ "${http_code}" -ne 000 ]]; then
+                          echo "Container minicms-app responded with HTTP ${http_code}; continuing deployment."
+                          ready=1
+                          break
+                        fi
+
+                        if [[ "${health}" == "healthy" ]]; then
+                          echo "Container minicms-app is healthy; continuing deployment."
+                          ready=1
+                          break
+                        fi
+
+                        sleep 2
+                      done
+
+                      if [[ "${ready}" -ne 1 ]]; then
+                        echo "Container minicms-app did not become ready in time."
+                        sudo docker inspect minicms-app --format='running={{.State.Running}} status={{.State.Status}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' || true
+                        sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" logs --tail=120 app || true
+                        exit 1
+                      fi
+
+                      echo "Deployment finished for ${DOMAIN}."
