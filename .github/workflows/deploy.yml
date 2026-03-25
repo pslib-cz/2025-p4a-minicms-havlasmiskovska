@@ -64,21 +64,16 @@ jobs:
             - name: Deploy over SSH
               uses: appleboy/ssh-action@v1.2.0
               env:
-                  CERTBOT_EMAIL: ${{ secrets.CERTBOT_EMAIL }}
-                  CERTBOT_DOMAINS: ${{ secrets.CERTBOT_DOMAINS }}
                   ENV_FILE: ${{ secrets.ENV_FILE }}
                   DEPLOY_COMMIT: ${{ github.sha }}
                   APP_DIR: /var/www/cms
                   DOMAIN: cms.144-91-77-107.sslip.io
-                  NGINX_CONF_NAME: cms.144-91-77-107.sslip.io.conf
-                  NGINX_AVAILABLE_DIR: ${{ secrets.NGINX_AVAILABLE_DIR }}
-                  NGINX_ENABLED_DIR: ${{ secrets.NGINX_ENABLED_DIR }}
               with:
                   host: ${{ secrets.VPS_HOST }}
                   username: ${{ secrets.VPS_USER }}
                   key: ${{ secrets.VPS_SSH_KEY }}
                   fingerprint: ${{ secrets.VPS_HOST_FINGERPRINT }}
-                  envs: CERTBOT_EMAIL,CERTBOT_DOMAINS,ENV_FILE,DEPLOY_COMMIT,APP_DIR,DOMAIN,NGINX_CONF_NAME,NGINX_AVAILABLE_DIR,NGINX_ENABLED_DIR
+                  envs: ENV_FILE,DEPLOY_COMMIT,APP_DIR,DOMAIN
                   script: |
                       set -euo pipefail
                       sudo mkdir -p "${APP_DIR}"
@@ -120,4 +115,4 @@ jobs:
                       grep -q '^NEXTAUTH_SECRET=' "${APP_DIR}/.env"
 
                       cd "${APP_DIR}"
-                      sudo APP_DIR="${APP_DIR}" DOMAIN="${DOMAIN}" NGINX_CONF_NAME="${NGINX_CONF_NAME}" NGINX_AVAILABLE_DIR="${NGINX_AVAILABLE_DIR}" NGINX_ENABLED_DIR="${NGINX_ENABLED_DIR}" CERTBOT_EMAIL="${CERTBOT_EMAIL}" CERTBOT_DOMAINS="${CERTBOT_DOMAINS}" bash ./deploy/vps/deploy.sh
+                      sudo APP_DIR="${APP_DIR}" DOMAIN="${DOMAIN}" bash ./deploy/vps/deploy.sh

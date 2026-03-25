@@ -13,8 +13,6 @@ services:
         environment:
             DATABASE_URL_DOCKER: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
             PORT: "3001"
-        extra_hosts:
-            - "host.docker.internal:host-gateway"
         ports:
             - "3001:3001"
         networks:
@@ -57,6 +55,7 @@ services:
 
 networks:
     vps-network:
+        external: true
 
 volumes:
     postgres_data:
