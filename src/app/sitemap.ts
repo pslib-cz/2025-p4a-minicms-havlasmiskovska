@@ -1,6 +1,8 @@
 import { MetadataRoute } from 'next'
 import { prisma } from "@/lib/prisma"
 
+export const dynamic = "force-dynamic"
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "http://localhost:3000";
 
@@ -9,7 +11,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     select: { id: true, updatedAt: true },
   });
 
-  const eventEntries = publishedEvents.map((event) => ({
+  const eventEntries: MetadataRoute.Sitemap = publishedEvents.map((event) => ({
     url: `${baseUrl}/published-days/${event.id}`,
     lastModified: event.updatedAt,
     changeFrequency: 'weekly' as const,
