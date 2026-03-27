@@ -4,7 +4,8 @@ import { notFound, redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import VisibilitySelector from "./visibility-selector";
-import styles from "./event-detail.module.css";
+import { BSCard, BSBadge } from "@/components/BootstrapUI";
+
 
 type EventDetailPageProps = {
   params: Promise<{
@@ -453,12 +454,12 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
   const bodyBatteryImpact = analyzeSingleEventImpact(bodyBatterySeries, event.startDate, event.endDate, false);
 
   return (
-    <main className={styles.page}>
-      <section className={styles.container}>
-        <header className={styles.header}>
-          <p className={styles.kicker}>Important Days</p>
-          <h1 className={styles.title}>{event.name}</h1>
-          <p className={styles.subtitle}>
+    <main className="min-vh-100 bg-light py-5">
+      <div className="container">
+        <header className="mb-5">
+          <p className="text-uppercase text-primary fw-bold mb-1">Important Days</p>
+          <h1 className="display-5 fw-bold mb-3">{event.name}</h1>
+          <p className="lead text-muted">
             {toDateLabel(event.startDate)}
             {toDateLabel(event.startDate) !== toDateLabel(event.endDate)
               ? ` - ${toDateLabel(event.endDate)}`
@@ -466,162 +467,164 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
           </p>
         </header>
 
-        <section className={styles.metaCard}>
-          <p className={styles.metaRow}>
-            <span className={styles.metaLabel}>Expected effect:</span>{" "}
-            {event.expectedEffect === "POSITIVE" ? "Positive" : "Negative"}
-          </p>
+        <BSCard className="mb-4 shadow-sm border-0">
+          <div className="d-flex flex-wrap align-items-center mb-2">
+            <span className="fw-bold d-inline-block me-2" style={{ minWidth: '130px' }}>Expected effect:</span>
+            <BSBadge bg={event.expectedEffect === "POSITIVE" ? "success" : "danger"}>
+              {event.expectedEffect === "POSITIVE" ? "Positive" : "Negative"}
+            </BSBadge>
+          </div>
 
           <VisibilitySelector eventId={event.id} currentVisibility={event.visibility} />
 
-          <p className={styles.insightMuted}>
+          <p className="text-muted small mt-2 mb-3">
             Multi-horizon impact details are available below for stress, respiration, and body battery.
           </p>
 
-          <div className={styles.tagsRow}>
+          <div className="d-flex flex-wrap gap-2 mt-3">
             {event.tags.map((tag) => (
-              <span key={tag} className={styles.tag}>{tag}</span>
+              <BSBadge key={tag} bg="primary" className="badge bg-secondary">{tag}</BSBadge>
             ))}
           </div>
-        </section>
+        </BSCard>
 
-        <section className={styles.contentCard}>
-          <h2 className={styles.sectionTitle}>What Happened</h2>
-          <div className={styles.richText} dangerouslySetInnerHTML={{ __html: event.descriptionHtml }} />
-        </section>
+        <BSCard className="mb-4 shadow-sm border-0">
+          <h2 className="h4 mb-4 border-bottom pb-2">What Happened</h2>
+          <div className="mb-3" dangerouslySetInnerHTML={{ __html: event.descriptionHtml }} />
+        </BSCard>
 
-        <section className={styles.contentCard}>
-          <h2 className={styles.sectionTitle}>Impact Analysis (Short / Medium / Long)</h2>
+        <BSCard className="mb-4 shadow-sm border-0">
+          <h2 className="h4 mb-4 border-bottom pb-2">Impact Analysis (Short / Medium / Long)</h2>
 
-          <div className={styles.metricsBlock}>
-            <h3 className={styles.metricsTitle}>Stress</h3>
+          <div className="mb-4 p-3 border rounded bg-white shadow-sm">
+            <h3 className="h5 mb-3 text-secondary">Stress</h3>
             {stressImpact ? (
-              <div className={styles.impactGrid}>
-                <p className={styles.impactSectionTitle}>Short-term:</p>
+              <div className="row g-2 mb-3">
+                <p className="fw-bold text-dark mt-2 mb-1">Short-term:</p>
                 {stressImpact.shortTerm ? (
                   <>
-                    <p>Stress became {stressImpact.shortTerm.direction} by {stressImpact.shortTerm.percentChange.toFixed(1)}%.</p>
+                    <p>Stress became <BSBadge bg={stressImpact.shortTerm.direction === "higher" ? "danger" : "success"}>{stressImpact.shortTerm.direction}</BSBadge> by {stressImpact.shortTerm.percentChange.toFixed(1)}%.</p>
                     <p>Interpretation: {stressImpact.shortTerm.interpretation}</p>
                   </>
                 ) : <p>Insufficient data for 7 days before or 7 days after the event.</p>}
 
-                <p className={styles.impactSectionTitle}>Medium-term:</p>
+                <p className="fw-bold text-dark mt-2 mb-1">Medium-term:</p>
                 {stressImpact.mediumTerm ? (
                   <>
-                    <p>Stress was {stressImpact.mediumTerm.direction} by {stressImpact.mediumTerm.percentChange.toFixed(1)}% compared to baseline.</p>
+                    <p>Stress was <BSBadge bg={stressImpact.mediumTerm.direction === "higher" ? "danger" : "success"}>{stressImpact.mediumTerm.direction}</BSBadge> by {stressImpact.mediumTerm.percentChange.toFixed(1)}% compared to baseline.</p>
                     <p>Z-score: {stressImpact.mediumTerm.zScore === null ? "n/a" : stressImpact.mediumTerm.zScore.toFixed(2)}</p>
                     <p>Interpretation: {stressImpact.mediumTerm.interpretation}</p>
                   </>
                 ) : <p>Insufficient baseline or 0-30 day post-event data.</p>}
 
-                <p className={styles.impactSectionTitle}>Long-term:</p>
+                <p className="fw-bold text-dark mt-2 mb-1">Long-term:</p>
                 {stressImpact.longTerm ? (
                   <>
-                    <p>Stress is {stressImpact.longTerm.direction} by {stressImpact.longTerm.percentChange.toFixed(1)}%.</p>
+                    <p>Stress is <BSBadge bg={stressImpact.longTerm.direction === "higher" ? "danger" : "success"}>{stressImpact.longTerm.direction}</BSBadge> by {stressImpact.longTerm.percentChange.toFixed(1)}%.</p>
                     <p>Interpretation: {stressImpact.longTerm.interpretation}</p>
                   </>
                 ) : <p>Insufficient long-term windows for structural change analysis.</p>}
 
                 {stressImpact.hasConflictingSignals ? (
-                  <p className={styles.impactConflict}>Signals conflict across time horizons.</p>
+                  <p className="alert alert-warning mt-3">Signals conflict across time horizons.</p>
                 ) : null}
               </div>
             ) : (
-              <p className={styles.emptyText}>Not enough stress data for multi-horizon analysis.</p>
+              <p className="text-muted fst-italic">Not enough stress data for multi-horizon analysis.</p>
             )}
           </div>
 
-          <div className={styles.metricsBlock}>
-            <h3 className={styles.metricsTitle}>Respiration</h3>
+          <div className="mb-4 p-3 border rounded bg-white shadow-sm">
+            <h3 className="h5 mb-3 text-secondary">Respiration</h3>
             {respirationImpact ? (
-              <div className={styles.impactGrid}>
-                <p className={styles.impactSectionTitle}>Short-term:</p>
+              <div className="row g-2 mb-3">
+                <p className="fw-bold text-dark mt-2 mb-1">Short-term:</p>
                 {respirationImpact.shortTerm ? (
                   <>
-                    <p>Respiration became {respirationImpact.shortTerm.direction} by {respirationImpact.shortTerm.percentChange.toFixed(1)}%.</p>
+                    <p>Respiration became <BSBadge bg={respirationImpact.shortTerm.direction === "higher" ? "danger" : "success"}>{respirationImpact.shortTerm.direction}</BSBadge> by {respirationImpact.shortTerm.percentChange.toFixed(1)}%.</p>
                     <p>Interpretation: {respirationImpact.shortTerm.interpretation}</p>
                   </>
                 ) : <p>Insufficient data for 7 days before or 7 days after the event.</p>}
 
-                <p className={styles.impactSectionTitle}>Medium-term:</p>
+                <p className="fw-bold text-dark mt-2 mb-1">Medium-term:</p>
                 {respirationImpact.mediumTerm ? (
                   <>
-                    <p>Respiration was {respirationImpact.mediumTerm.direction} by {respirationImpact.mediumTerm.percentChange.toFixed(1)}% compared to baseline.</p>
+                    <p>Respiration was <BSBadge bg={respirationImpact.mediumTerm.direction === "higher" ? "danger" : "success"}>{respirationImpact.mediumTerm.direction}</BSBadge> by {respirationImpact.mediumTerm.percentChange.toFixed(1)}% compared to baseline.</p>
                     <p>Z-score: {respirationImpact.mediumTerm.zScore === null ? "n/a" : respirationImpact.mediumTerm.zScore.toFixed(2)}</p>
                     <p>Interpretation: {respirationImpact.mediumTerm.interpretation}</p>
                   </>
                 ) : <p>Insufficient baseline or 0-30 day post-event data.</p>}
 
-                <p className={styles.impactSectionTitle}>Long-term:</p>
+                <p className="fw-bold text-dark mt-2 mb-1">Long-term:</p>
                 {respirationImpact.longTerm ? (
                   <>
-                    <p>Respiration is {respirationImpact.longTerm.direction} by {respirationImpact.longTerm.percentChange.toFixed(1)}%.</p>
+                    <p>Respiration is <BSBadge bg={respirationImpact.longTerm.direction === "higher" ? "danger" : "success"}>{respirationImpact.longTerm.direction}</BSBadge> by {respirationImpact.longTerm.percentChange.toFixed(1)}%.</p>
                     <p>Interpretation: {respirationImpact.longTerm.interpretation}</p>
                   </>
                 ) : <p>Insufficient long-term windows for structural change analysis.</p>}
 
                 {respirationImpact.hasConflictingSignals ? (
-                  <p className={styles.impactConflict}>Signals conflict across time horizons.</p>
+                  <p className="alert alert-warning mt-3">Signals conflict across time horizons.</p>
                 ) : null}
               </div>
             ) : (
-              <p className={styles.emptyText}>Not enough respiration data for multi-horizon analysis.</p>
+              <p className="text-muted fst-italic">Not enough respiration data for multi-horizon analysis.</p>
             )}
           </div>
 
-          <div className={styles.metricsBlock}>
-            <h3 className={styles.metricsTitle}>Body Battery</h3>
+          <div className="mb-4 p-3 border rounded bg-white shadow-sm">
+            <h3 className="h5 mb-3 text-secondary">Body Battery</h3>
             {bodyBatteryImpact ? (
-              <div className={styles.impactGrid}>
-                <p className={styles.impactSectionTitle}>Short-term:</p>
+              <div className="row g-2 mb-3">
+                <p className="fw-bold text-dark mt-2 mb-1">Short-term:</p>
                 {bodyBatteryImpact.shortTerm ? (
                   <>
-                    <p>Body battery became {bodyBatteryImpact.shortTerm.direction} by {bodyBatteryImpact.shortTerm.percentChange.toFixed(1)}%.</p>
+                    <p>Body battery became <BSBadge bg={bodyBatteryImpact.shortTerm.direction === "lower" ? "danger" : "success"}>{bodyBatteryImpact.shortTerm.direction}</BSBadge> by {bodyBatteryImpact.shortTerm.percentChange.toFixed(1)}%.</p>
                     <p>Interpretation: {bodyBatteryImpact.shortTerm.interpretation}</p>
                   </>
                 ) : <p>Insufficient data for 7 days before or 7 days after the event.</p>}
 
-                <p className={styles.impactSectionTitle}>Medium-term:</p>
+                <p className="fw-bold text-dark mt-2 mb-1">Medium-term:</p>
                 {bodyBatteryImpact.mediumTerm ? (
                   <>
-                    <p>Body battery was {bodyBatteryImpact.mediumTerm.direction} by {bodyBatteryImpact.mediumTerm.percentChange.toFixed(1)}% compared to baseline.</p>
+                    <p>Body battery was <BSBadge bg={bodyBatteryImpact.mediumTerm.direction === "lower" ? "danger" : "success"}>{bodyBatteryImpact.mediumTerm.direction}</BSBadge> by {bodyBatteryImpact.mediumTerm.percentChange.toFixed(1)}% compared to baseline.</p>
                     <p>Z-score: {bodyBatteryImpact.mediumTerm.zScore === null ? "n/a" : bodyBatteryImpact.mediumTerm.zScore.toFixed(2)}</p>
                     <p>Interpretation: {bodyBatteryImpact.mediumTerm.interpretation}</p>
                   </>
                 ) : <p>Insufficient baseline or 0-30 day post-event data.</p>}
 
-                <p className={styles.impactSectionTitle}>Long-term:</p>
+                <p className="fw-bold text-dark mt-2 mb-1">Long-term:</p>
                 {bodyBatteryImpact.longTerm ? (
                   <>
-                    <p>Body battery is {bodyBatteryImpact.longTerm.direction} by {bodyBatteryImpact.longTerm.percentChange.toFixed(1)}%.</p>
+                    <p>Body battery is <BSBadge bg={bodyBatteryImpact.longTerm.direction === "lower" ? "danger" : "success"}>{bodyBatteryImpact.longTerm.direction}</BSBadge> by {bodyBatteryImpact.longTerm.percentChange.toFixed(1)}%.</p>
                     <p>Interpretation: {bodyBatteryImpact.longTerm.interpretation}</p>
                   </>
                 ) : <p>Insufficient long-term windows for structural change analysis.</p>}
 
                 {bodyBatteryImpact.hasConflictingSignals ? (
-                  <p className={styles.impactConflict}>Signals conflict across time horizons.</p>
+                  <p className="alert alert-warning mt-3">Signals conflict across time horizons.</p>
                 ) : null}
               </div>
             ) : (
-              <p className={styles.emptyText}>Not enough body battery data for multi-horizon analysis.</p>
+              <p className="text-muted fst-italic">Not enough body battery data for multi-horizon analysis.</p>
             )}
           </div>
-        </section>
+        </BSCard>
 
-        <section className={styles.contentCard}>
-          <h2 className={styles.sectionTitle}>Detailed Metrics During This Important Day</h2>
+        <BSCard className="mb-4 shadow-sm border-0">
+          <h2 className="h4 mb-4 border-bottom pb-2">Detailed Metrics During This Important Day</h2>
 
-          <article className={styles.metricsBlock}>
-            <h3 className={styles.metricsTitle}>Stress (all properties)</h3>
+          <BSCard className="mb-4 p-3 border rounded bg-white shadow-sm">
+            <h3 className="h5 mb-3 text-secondary">Stress (all properties)</h3>
             {stressRows.length === 0 ? (
-              <p className={styles.emptyText}>No stress rows found for this date range.</p>
+              <p className="text-muted fst-italic">No stress rows found for this date range.</p>
             ) : (
               stressRows.map((row) => (
-                <div key={`stress-${row.pk_date.toISOString()}`} className={styles.metricRow}>
-                  <p className={styles.metricRowTitle}>{toDateLabel(row.pk_date)}</p>
-                  <dl className={styles.kvGrid}>
+                <div key={`stress-${row.pk_date.toISOString()}`} className="mb-4 border-bottom pb-3">
+                  <p className="fw-bold mb-2">{toDateLabel(row.pk_date)}</p>
+                  <dl className="row g-2">
                     {Object.entries(row).map(([key, value]) => (
-                      <div key={key} className={styles.kvItem}>
+                      <div key={key} className="col-md-4 col-sm-6">
                         <dt>{key}</dt>
                         <dd>{toDisplayValue(value)}</dd>
                       </div>
@@ -630,19 +633,19 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
                 </div>
               ))
             )}
-          </article>
+          </BSCard>
 
-          <article className={styles.metricsBlock}>
-            <h3 className={styles.metricsTitle}>Respiration (all properties)</h3>
+          <BSCard className="mb-4 p-3 border rounded bg-white shadow-sm">
+            <h3 className="h5 mb-3 text-secondary">Respiration (all properties)</h3>
             {respirationRows.length === 0 ? (
-              <p className={styles.emptyText}>No respiration rows found for this date range.</p>
+              <p className="text-muted fst-italic">No respiration rows found for this date range.</p>
             ) : (
               respirationRows.map((row) => (
-                <div key={`respiration-${row.pk_date.toISOString()}`} className={styles.metricRow}>
-                  <p className={styles.metricRowTitle}>{toDateLabel(row.pk_date)}</p>
-                  <dl className={styles.kvGrid}>
+                <div key={`respiration-${row.pk_date.toISOString()}`} className="mb-4 border-bottom pb-3">
+                  <p className="fw-bold mb-2">{toDateLabel(row.pk_date)}</p>
+                  <dl className="row g-2">
                     {Object.entries(row).map(([key, value]) => (
-                      <div key={key} className={styles.kvItem}>
+                      <div key={key} className="col-md-4 col-sm-6">
                         <dt>{key}</dt>
                         <dd>{toDisplayValue(value)}</dd>
                       </div>
@@ -651,19 +654,19 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
                 </div>
               ))
             )}
-          </article>
+          </BSCard>
 
-          <article className={styles.metricsBlock}>
-            <h3 className={styles.metricsTitle}>Body Battery (all properties)</h3>
+          <BSCard className="mb-4 p-3 border rounded bg-white shadow-sm">
+            <h3 className="h5 mb-3 text-secondary">Body Battery (all properties)</h3>
             {bodyBatteryRows.length === 0 ? (
-              <p className={styles.emptyText}>No body battery rows found for this date range.</p>
+              <p className="text-muted fst-italic">No body battery rows found for this date range.</p>
             ) : (
               bodyBatteryRows.map((row) => (
-                <div key={`body-battery-${row.pk_date.toISOString()}`} className={styles.metricRow}>
-                  <p className={styles.metricRowTitle}>{toDateLabel(row.pk_date)}</p>
-                  <dl className={styles.kvGrid}>
+                <div key={`body-battery-${row.pk_date.toISOString()}`} className="mb-4 border-bottom pb-3">
+                  <p className="fw-bold mb-2">{toDateLabel(row.pk_date)}</p>
+                  <dl className="row g-2">
                     {Object.entries(row).map(([key, value]) => (
-                      <div key={key} className={styles.kvItem}>
+                      <div key={key} className="col-md-4 col-sm-6">
                         <dt>{key}</dt>
                         <dd>{toDisplayValue(value)}</dd>
                       </div>
@@ -672,13 +675,13 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
                 </div>
               ))
             )}
-          </article>
-        </section>
+          </BSCard>
+        </BSCard>
 
-        <Link href="/private/events" className={styles.backLink}>
+        <Link href="/private/events" className="btn btn-outline-secondary mt-4">
           Back To Events
         </Link>
-      </section>
+      </div>
     </main>
   );
 }

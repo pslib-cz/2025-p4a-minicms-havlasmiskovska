@@ -2,43 +2,41 @@ import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
-import styles from "./public-home.module.css";
 
 export default async function PublicHomePage() {
-    const session = await getServerSession(authOptions);
+  const session = await getServerSession(authOptions);
 
-    if (session) {
-        redirect("/private/dashboard");
-    }
+  if (session) {
+    redirect("/private/dashboard");
+  }
 
-    return (
-        <main className={styles.page}>
-            <section className={styles.card}>
-                <p className={styles.kicker}>Mini CMS</p>
-                <h1 className={styles.title}>Health Snapshot Dashboard</h1>
-                <p className={styles.subtitle}>
-                    Sign in to access private anasaddaslytics and view your
-                    latest stress trend.
-                </p>
+  return (
+    <main className="min-vh-100 d-flex align-items-center justify-content-center bg-light px-3">
+      <div className="w-100 row justify-content-center m-0">
+      <div className="col-12 col-sm-9 col-md-6 col-lg-5 p-0">
+      <div className="card border-0 shadow-sm text-center">
+        <div className="card-body p-4 p-md-5">
+          <p className="text-uppercase text-primary fw-bold small mb-1">Mini CMS</p>
+          <h1 className="h2 fw-bold mb-3">Health Snapshot Dashboard</h1>
+          <p className="text-muted mb-4">
+            Sign in to access private analytics and view your latest stress trend.
+          </p>
 
-                <div className={styles.actions}>
-                    <Link href="/login" className={styles.primaryAction}>
-                        Go To Login
-                    </Link>
-                    <Link
-                        href="/private/dashboard"
-                        className={styles.secondaryAction}
-                    >
-                        Dashboard
-                    </Link>
-                    <Link
-                        href="/published-days"
-                        className={styles.secondaryAction}
-                    >
-                        Published Important Days
-                    </Link>
-                </div>
-            </section>
-        </main>
-    );
+          <div className="d-flex flex-column gap-2">
+            <Link href="/login" className="btn btn-dark btn-lg w-100">
+              Go To Login
+            </Link>
+            <Link href="/published-days" className="btn btn-outline-secondary w-100">
+              Published Important Days
+            </Link>
+            <Link href="/private/dashboard" className="btn btn-link text-muted text-decoration-none">
+              Dashboard
+            </Link>
+          </div>
+        </div>
+      </div>
+      </div>
+      </div>
+    </main>
+  );
 }

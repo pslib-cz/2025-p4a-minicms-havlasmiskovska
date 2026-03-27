@@ -4,7 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import MetricChart, { type MetricPoint } from "./metric-chart";
 import CombinedChart from "./combined-chart";
-import styles from "./private-page.module.css";
+import { BSCard } from "@/components/BootstrapUI";
+
 
 type PrivateSlug = "dashboard" | "stress" | "body-battery" | "respiration";
 type MetricKey = "stress" | "respiration" | "bodyBattery";
@@ -758,24 +759,24 @@ type MetricPanelProps = {
 
 function MetricPanel({ title, average, trend, hint, children }: MetricPanelProps) {
   const trendToneClass = {
-    up: styles.trendUp,
-    down: styles.trendDown,
-    flat: styles.trendFlat,
+    up: "bg-danger",
+    down: "bg-success",
+    flat: "bg-secondary",
   };
 
   return (
-    <article className={styles.panel}>
-      <div className={styles.panelTopRow}>
-        <h2 className={styles.panelTitle}>{title}</h2>
-        <p className={styles.metric}>Average: {average}</p>
+    <BSCard className="shadow-sm border-0 mb-4">
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <h2 className="h5 mb-0">{title}</h2>
+        <p className="fs-5 fw-bold text-primary mb-0">Average: {average}</p>
       </div>
-      <div className={styles.trendRow}>
-        <p className={`${styles.trendBadge} ${trendToneClass[trend.tone]}`}>{trend.label}</p>
-        <p className={styles.trendDelta}>{trend.deltaText}</p>
+      <div className="d-flex align-items-center gap-2 mb-3">
+        <p className={`badge p-2 ${trendToneClass[trend.tone]}`}>{trend.label}</p>
+        <p className="fw-bold ms-2 mb-0">{trend.deltaText}</p>
       </div>
-      <p className={styles.panelHint}>{hint}</p>
+      <p className="text-muted small mb-4">{hint}</p>
       {children}
-    </article>
+    </BSCard>
   );
 }
 
@@ -817,37 +818,37 @@ export default async function PrivateSlugPage({ params }: PrivateSlugPageProps) 
     }));
 
     return (
-      <main className={styles.page}>
-        <section className={styles.container}>
-          <header className={styles.header}>
-            <p className={styles.kicker}>Private</p>
-            <h1 className={styles.title}>Dashboard</h1>
-            <p className={styles.subtitle}>
+      <main className="min-vh-100 bg-light py-5">
+        <div className="container">
+          <header className="mb-5">
+            <p className="text-uppercase text-primary fw-bold mb-1">Private</p>
+            <h1 className="display-5 fw-bold mb-3">Dashboard</h1>
+            <p className="lead text-muted">
               Combined view of stress, body battery, and respiration. Values are normalized so their
               lines can be connected and compared on the same timeline.
             </p>
           </header>
 
-          <section className={styles.summaryGrid}>
+          <section className="row row-cols-1 row-cols-md-3 g-4 mb-5">
             {METRICS.map((metric) => {
               const oneYearPoints = getOneYearSubset(series[metric.key]);
               const oneYearTrend = calculateTrend(oneYearPoints, metric);
               const oneYearAverage = averageMetric(oneYearPoints);
 
               return (
-                <article key={metric.key} className={styles.summaryCard}>
-                  <p className={styles.summaryTitle}>{metric.label}</p>
-                  <p className={styles.summaryValue}>{oneYearAverage}</p>
-                  <p className={styles.summaryTrend}>{oneYearTrend.label}</p>
-                </article>
+                <BSCard key={metric.key} className="h-100 shadow-sm border-0 p-4 text-center">
+                  <p className="text-muted text-uppercase fw-bold small mb-2">{metric.label}</p>
+                  <p className="display-6 fw-bold mb-3">{oneYearAverage}</p>
+                  <p className="badge bg-light text-dark p-2">{oneYearTrend.label}</p>
+                </BSCard>
               );
             })}
           </section>
 
-          <section className={styles.panelsStack}>
-            <article className={styles.panel}>
-              <h2 className={styles.panelTitle}>Combined Trend - 1 Year</h2>
-              <p className={styles.panelHint}>
+          <section className="d-flex flex-column gap-4">
+            <BSCard className="shadow-sm border-0 mb-4">
+              <h2 className="h5 mb-0">Combined Trend - 1 Year</h2>
+              <p className="text-muted small mb-4">
                 7-point smoothing with normalized values to compare all three metrics together.
               </p>
               <CombinedChart
@@ -856,11 +857,11 @@ export default async function PrivateSlugPage({ params }: PrivateSlugPageProps) 
                 smoothingWindow={7}
                 events={importantEvents}
               />
-            </article>
+            </BSCard>
 
-            <article className={styles.panel}>
-              <h2 className={styles.panelTitle}>Combined Trend - All Time</h2>
-              <p className={styles.panelHint}>
+            <BSCard className="shadow-sm border-0 mb-4">
+              <h2 className="h5 mb-0">Combined Trend - All Time</h2>
+              <p className="text-muted small mb-4">
                 21-point smoothing across full history with connected lines for each metric.
               </p>
               <CombinedChart
@@ -869,9 +870,9 @@ export default async function PrivateSlugPage({ params }: PrivateSlugPageProps) 
                 smoothingWindow={21}
                 events={importantEvents}
               />
-            </article>
+            </BSCard>
           </section>
-        </section>
+        </div>
       </main>
     );
   }
@@ -894,18 +895,18 @@ export default async function PrivateSlugPage({ params }: PrivateSlugPageProps) 
   const eventImpactAnalyses = analyzeEventImpact(allPoints, importantEvents, lowerIsBetter);
 
   return (
-    <main className={styles.page}>
-      <section className={styles.container}>
-        <header className={styles.header}>
-          <p className={styles.kicker}>Private</p>
-          <h1 className={styles.title}>{metric.label}</h1>
-          <p className={styles.subtitle}>
+    <main className="min-vh-100 bg-light py-5">
+      <div className="container">
+        <header className="mb-5">
+          <p className="text-uppercase text-primary fw-bold mb-1">Private</p>
+          <h1 className="display-5 fw-bold mb-3">{metric.label}</h1>
+          <p className="lead text-muted">
             Dedicated {metric.label.toLowerCase()} page with two large graphs for yearly and all-time
             analysis.
           </p>
         </header>
 
-        <section className={styles.panelsStack}>
+        <section className="d-flex flex-column gap-4">
           <MetricPanel
             title={`${metric.label} Trend - 1 Year`}
             average={oneYearAverage}
@@ -938,18 +939,18 @@ export default async function PrivateSlugPage({ params }: PrivateSlugPageProps) 
             />
           </MetricPanel>
 
-          <article className={styles.panel}>
-            <h2 className={styles.panelTitle}>Detailed Metric Graphs</h2>
-            <p className={styles.panelHint}>
+          <BSCard className="shadow-sm border-0 mb-4">
+            <h2 className="h5 mb-0">Detailed Metric Graphs</h2>
+            <p className="text-muted small mb-4">
               These extra charts break the metric into separate dimensions so you can see daily dynamics,
               not only the smoothed average trend.
             </p>
-          </article>
+          </BSCard>
 
           {additionalCharts.map((chart) => (
-            <article key={chart.key} className={styles.panel}>
-              <h2 className={styles.panelTitle}>{chart.title}</h2>
-              <p className={styles.panelHint}>{chart.description}</p>
+            <BSCard key={chart.key} className="card shadow-sm border-0 mb-4">
+              <h2 className="h5 mb-0">{chart.title}</h2>
+              <p className="text-muted small mb-4">{chart.description}</p>
               <MetricChart
                 points={chart.points}
                 metricLabel={`${metric.label} - ${chart.title}`}
@@ -958,26 +959,26 @@ export default async function PrivateSlugPage({ params }: PrivateSlugPageProps) 
                 colorEnd={chart.colorEnd}
                 events={importantEvents}
               />
-            </article>
+            </BSCard>
           ))}
 
-          <article className={styles.panel}>
-            <h2 className={styles.panelTitle}>Event Impact</h2>
-            <p className={styles.panelHint}>
+          <BSCard className="shadow-sm border-0 mb-4">
+            <h2 className="h5 mb-0">Event Impact</h2>
+            <p className="text-muted small mb-4">
               Three-horizon analysis of {metric.label.toLowerCase()} around each important day. Small shifts under 5% are treated as potential noise.
             </p>
 
             {eventImpactAnalyses.length === 0 ? (
-              <p className={styles.emptyState}>
+              <p className="text-muted fst-italic p-4 text-center border rounded">
                 Not enough {metric.label.toLowerCase()} data to run short-, medium-, and long-term impact analysis.
               </p>
             ) : (
-              <div className={styles.eventImpactList}>
+              <div className="d-flex flex-column gap-3">
                 {eventImpactAnalyses.map((analysis) => (
-                  <article key={analysis.eventId} className={styles.eventImpactItem}>
-                    <h3 className={styles.eventImpactTitle}>Event: {analysis.eventName}</h3>
+                  <article key={analysis.eventId} className="p-3 border rounded bg-light">
+                    <h3 className="h6 fw-bold mb-3">Event: {analysis.eventName}</h3>
 
-                    <p className={styles.eventImpactSectionTitle}>Short-term:</p>
+                    <p className="fw-bold small text-secondary mt-2 mb-1">Short-term:</p>
                     {analysis.shortTerm ? (
                       <>
                         <p>
@@ -989,7 +990,7 @@ export default async function PrivateSlugPage({ params }: PrivateSlugPageProps) 
                       <p>Insufficient data for 7 days before or 7 days after the event.</p>
                     )}
 
-                    <p className={styles.eventImpactSectionTitle}>Medium-term:</p>
+                    <p className="fw-bold small text-secondary mt-2 mb-1">Medium-term:</p>
                     {analysis.mediumTerm ? (
                       <>
                         <p>
@@ -1005,7 +1006,7 @@ export default async function PrivateSlugPage({ params }: PrivateSlugPageProps) 
                       <p>Insufficient baseline or 0-30 day post-event data.</p>
                     )}
 
-                    <p className={styles.eventImpactSectionTitle}>Long-term:</p>
+                    <p className="fw-bold small text-secondary mt-2 mb-1">Long-term:</p>
                     {analysis.longTerm ? (
                       <>
                         <p>
@@ -1018,7 +1019,7 @@ export default async function PrivateSlugPage({ params }: PrivateSlugPageProps) 
                     )}
 
                     {analysis.hasConflictingSignals ? (
-                      <p className={styles.eventImpactConflict}>
+                      <p className="alert alert-warning small mt-3 mb-0">
                         Note: Signals conflict across time horizons, so the event may have mixed short-, medium-, and long-term effects.
                       </p>
                     ) : null}
@@ -1026,9 +1027,9 @@ export default async function PrivateSlugPage({ params }: PrivateSlugPageProps) 
                 ))}
               </div>
             )}
-          </article>
+          </BSCard>
         </section>
-      </section>
+      </div>
     </main>
   );
 }

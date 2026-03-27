@@ -1,13 +1,13 @@
 "use client";
 
 import { signOut } from "next-auth/react";
-import styles from "./dashboard.module.css";
+
 
 export default function SignOutButton() {
   return (
     <button
       type="button"
-      className={styles.signOutButton}
+      className="btn btn-outline-light mt-4 w-100"
       onClick={() => signOut({ callbackUrl: "/login" })}
     >
       Sign Out

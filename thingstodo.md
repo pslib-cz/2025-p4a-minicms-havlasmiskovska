@@ -6,7 +6,7 @@
 ## Public section requirements
 
 
-## SEO requirements
+## SEO requirements DONE
 - Add dynamic metadata generated from content (`generateMetadata` for list/detail pages).
 - Add OpenGraph metadata.
 - Add canonical URLs (`alternates.canonical`).
@@ -30,7 +30,7 @@
   - `DELETE` remove: `/api/events/[id]`
 - Done: auth/session checks, ownership checks, and server-side validation are enforced in all CRUD handlers.
 
-## UI library requirement
+## UI library requirement DONE
 - Integrate one required UI component library (React Bootstrap, PrimeReact, Mantine, MUI, Ant Design, Fluent UI, NextUI, or Carbon).
 
 ## Analytics + consent
