@@ -185,3 +185,14 @@ jobs:
                       fi
 
                       echo "Deployment finished for ${DOMAIN}."
+
+        - name: Dump app logs for debugging
+          uses: appleboy/ssh-action@v1.2.0
+          with:
+              host: ${{ secrets.VPS_HOST }}
+              username: ${{ secrets.VPS_USER }}
+              key: ${{ secrets.VPS_SSH_KEY }}
+              fingerprint: ${{ secrets.VPS_HOST_FINGERPRINT }}
+              script: |
+                  echo "=== Last 150 lines of app logs ==="
+                  sudo docker logs minicms-app --tail=150 2>&1 || true
