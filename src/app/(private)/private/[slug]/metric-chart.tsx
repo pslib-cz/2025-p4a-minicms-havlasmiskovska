@@ -1,7 +1,7 @@
 "use client";
 
 import { useId } from "react";
-import styles from "./private-page.module.css";
+
 
 export type MetricPoint = {
   date: string;
@@ -65,11 +65,7 @@ function buildTicks(points: MetricPoint[]): ChartTick[] {
       if (Number.isNaN(parsed.getTime())) {
         return null;
       }
-
-      return {
-        index,
-        date: parsed,
-      };
+      return { index, date: parsed };
     })
     .filter((entry): entry is { index: number; date: Date } => entry !== null);
 
@@ -81,32 +77,51 @@ function buildTicks(points: MetricPoint[]): ChartTick[] {
   const last = datedPoints[datedPoints.length - 1].date.getTime();
   const spanDays = (last - first) / (1000 * 60 * 60 * 24);
   const useYearlyTicks = spanDays > 550;
+  const useMonthlyTicks = spanDays <= 90;
 
   const seen = new Set<string>();
   const ticks: ChartTick[] = [];
+  let lastIndex = -Infinity;
+  const indexRange = datedPoints[datedPoints.length - 1].index - datedPoints[0].index || 1;
 
   for (const entry of datedPoints) {
     const year = entry.date.getUTCFullYear();
-    const quarter = Math.floor(entry.date.getUTCMonth() / 3) + 1;
-    const key = useYearlyTicks ? `${year}` : `${year}-Q${quarter}`;
+    const month = entry.date.getUTCMonth() + 1;
+    const quarter = Math.floor((month - 1) / 3) + 1;
+
+    let key = "";
+    let label = "";
+
+    if (useYearlyTicks) {
+      key = `${year}`;
+      label = `${year}`;
+    } else if (useMonthlyTicks) {
+      key = `${year}-${month}`;
+      const monthName = entry.date.toLocaleString('en', { month: 'short' });
+      label = `${monthName} ${year}`;
+    } else {
+      key = `${year}-Q${quarter}`;
+      label = `Q${quarter} ${year}`;
+    }
 
     if (seen.has(key)) {
+      continue;
+    }
+
+    // Ensure at least 8% of the chart width distance between ticks
+    if (lastIndex !== -Infinity && (entry.index - lastIndex) / indexRange < 0.08) {
       continue;
     }
 
     seen.add(key);
     ticks.push({
       index: entry.index,
-      label: useYearlyTicks ? `${year}` : `Q${quarter} ${year}`,
+      label,
     });
+    lastIndex = entry.index;
   }
 
-  if (ticks.length <= 8) {
-    return ticks;
-  }
-
-  const step = Math.ceil((ticks.length - 1) / 7);
-  return ticks.filter((_, idx) => idx % step === 0 || idx === ticks.length - 1);
+  return ticks;
 }
 
 function buildPath(points: IndexedPoint[], toX: (index: number) => number, toY: (value: number) => number) {
@@ -150,7 +165,7 @@ export default function MetricChart({
 
   if (valuePoints.length < 2) {
     return (
-      <p className={styles.emptyState}>Not enough {metricLabel.toLowerCase()} data to render chart.</p>
+      <p className="text-muted fst-italic p-4 text-center border rounded">Not enough {metricLabel.toLowerCase()} data to render chart.</p>
     );
   }
 
@@ -194,8 +209,14 @@ export default function MetricChart({
   const lastLabel = points[points.length - 1]?.date ?? "";
 
   return (
-    <div className={styles.chartWrap}>
-      <svg viewBox={`0 0 ${width} ${height}`} className={styles.chart} role="img" aria-label={`${metricLabel} trend`}>
+    <div className="position-relative w-100 mt-2 mb-4">
+      <svg 
+        viewBox={`0 0 ${width} ${height}`} 
+        className="w-100 h-auto" 
+        role="img" 
+        aria-label={`${metricLabel} trend`}
+        style={{ overflow: 'visible' }}
+      >
         <defs>
           <linearGradient id={gradientId} x1="0" x2="1" y1="0" y2="0">
             <stop offset="0%" stopColor={colorStart} />
@@ -218,7 +239,14 @@ export default function MetricChart({
                 strokeWidth="1"
                 strokeDasharray="4 5"
               />
-              <text x={x} y={tickLabelY} textAnchor={textAnchor} className={styles.chartTickLabel}>
+              <text 
+                x={x} 
+                y={tickLabelY} 
+                textAnchor={textAnchor}
+                fill="#64748b"
+                fontSize="12"
+                fontFamily="system-ui, -apple-system, sans-serif"
+              >
                 {tick.label}
               </text>
             </g>
@@ -240,7 +268,14 @@ export default function MetricChart({
                 strokeWidth="1.5"
                 strokeDasharray="6 5"
               />
-              <text x={x + 4} y={padding + 12} className={styles.eventChartLabel} fill={markerColor}>
+              <text 
+                x={x + 4} 
+                y={padding + 12} 
+                fill={markerColor}
+                fontSize="11"
+                fontWeight="bold"
+                fontFamily="system-ui, -apple-system, sans-serif"
+              >
                 {event.name}
               </text>
             </g>
@@ -285,7 +320,7 @@ export default function MetricChart({
         />
       </svg>
 
-      <div className={styles.chartLabels}>
+      <div className="d-flex justify-content-between text-muted small mt-2 px-1">
         <span>{firstLabel}</span>
         <span>{lastLabel}</span>
       </div>

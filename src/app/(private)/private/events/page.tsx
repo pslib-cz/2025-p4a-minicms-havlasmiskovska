@@ -3,7 +3,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import styles from "./events.module.css";
+
+import ClientEventsView from "./ClientEventsView";
 
 type EventsPageProps = {
   searchParams?: Promise<{
@@ -175,116 +176,35 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
       row.chargedValue,
   }));
 
-  const stressInsightByEventId = new Map<string, MetricInsight>();
-  const respirationInsightByEventId = new Map<string, MetricInsight>();
-  const bodyBatteryInsightByEventId = new Map<string, MetricInsight>();
+  const stressInsightMap: Record<string, MetricInsight> = {};
+  const respirationInsightMap: Record<string, MetricInsight> = {};
+  const bodyBatteryInsightMap: Record<string, MetricInsight> = {};
 
   for (const event of events) {
     const stressInsight = computeMetricInsight(event, stressPoints, true);
     const respirationInsight = computeMetricInsight(event, respirationPoints, true);
     const bodyBatteryInsight = computeMetricInsight(event, bodyBatteryPoints, false);
 
-    if (stressInsight) {
-      stressInsightByEventId.set(event.id, stressInsight);
-    }
-
-    if (respirationInsight) {
-      respirationInsightByEventId.set(event.id, respirationInsight);
-    }
-
-    if (bodyBatteryInsight) {
-      bodyBatteryInsightByEventId.set(event.id, bodyBatteryInsight);
-    }
+    if (stressInsight) stressInsightMap[event.id] = stressInsight;
+    if (respirationInsight) respirationInsightMap[event.id] = respirationInsight;
+    if (bodyBatteryInsight) bodyBatteryInsightMap[event.id] = bodyBatteryInsight;
   }
 
   const resolvedSearchParams = (await searchParams) ?? {};
 
   return (
-    <main className={styles.page}>
-      <section className={styles.container}>
-        <header className={styles.header}>
-          <p className={styles.kicker}>Important Days</p>
-          <h1 className={styles.title}>Events</h1>
-          <p className={styles.subtitle}>
-            Create events that may affect your stress, respiration, or body battery trends.
-          </p>
-        </header>
-
-        {resolvedSearchParams.success === "1" ? (
-          <p className={styles.successBox}>Event saved successfully.</p>
-        ) : null}
-
-        <Link href="/private/events/new" className={styles.createButton}>
-          Create Important Day
-        </Link>
-
-        <section className={styles.list}>
-          {events.length === 0 ? (
-            <p className={styles.emptyState}>No important days yet.</p>
-          ) : (
-            events.map((event) => (
-              <article key={event.id} className={styles.card}>
-                <div className={styles.cardTop}>
-                  <h2 className={styles.cardTitle}>{event.name}</h2>
-                  <span className={event.expectedEffect === "POSITIVE" ? styles.positive : styles.negative}>
-                    {event.expectedEffect === "POSITIVE" ? "Positive" : "Negative"}
-                  </span>
-                </div>
-
-                <p className={styles.dateText}>
-                  {toDateLabel(event.startDate)}
-                  {toDateLabel(event.startDate) !== toDateLabel(event.endDate)
-                    ? ` - ${toDateLabel(event.endDate)}`
-                    : ""}
-                </p>
-
-                {stressInsightByEventId.has(event.id) ? (
-                  <p className={styles.stressInsight}>
-                    Your stress has got {stressInsightByEventId.get(event.id)?.trend} by {" "}
-                    {stressInsightByEventId.get(event.id)?.percent.toFixed(1)}% from this day.
-                  </p>
-                ) : (
-                  <p className={styles.stressInsightMuted}>
-                    Not enough nearby stress data to calculate change from this day.
-                  </p>
-                )}
-
-                {bodyBatteryInsightByEventId.has(event.id) ? (
-                  <p className={styles.stressInsight}>
-                    Your body battery has got {bodyBatteryInsightByEventId.get(event.id)?.trend} by {" "}
-                    {bodyBatteryInsightByEventId.get(event.id)?.percent.toFixed(1)}% from this day.
-                  </p>
-                ) : (
-                  <p className={styles.stressInsightMuted}>
-                    Not enough nearby body battery data to calculate change from this day.
-                  </p>
-                )}
-
-                {respirationInsightByEventId.has(event.id) ? (
-                  <p className={styles.stressInsight}>
-                    Your respiration has got {respirationInsightByEventId.get(event.id)?.trend} by {" "}
-                    {respirationInsightByEventId.get(event.id)?.percent.toFixed(1)}% from this day.
-                  </p>
-                ) : (
-                  <p className={styles.stressInsightMuted}>
-                    Not enough nearby respiration data to calculate change from this day.
-                  </p>
-                )}
-
-                <div className={styles.tagsRow}>
-                  {(event.tags as string[]).map((tag) => (
-                    <span key={tag} className={styles.tag}>{tag}</span>
-                  ))}
-                </div>
-
-                <Link href={`/private/events/${event.id}`} className={styles.detailLink}>
-                  View Details
-                </Link>
-              </article>
-            ))
-          )}
-        </section>
-      </section>
+    <main className="min-vh-100 bg-light py-5">
+      {resolvedSearchParams.success === "1" && (
+        <div className="container mb-3">
+          <div className="alert alert-success fw-bold">Event saved successfully.</div>
+        </div>
+      )}
+      <ClientEventsView 
+        events={events}
+        stressInsights={stressInsightMap}
+        respirationInsights={respirationInsightMap}
+        bodyBatteryInsights={bodyBatteryInsightMap}
+      />
     </main>
   );
 }

@@ -1,7 +1,39 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import styles from "./published-day-detail.module.css";
+
+export async function generateMetadata(
+  { params }: PublishedDayDetailPageProps
+): Promise<Metadata> {
+  const { id } = await params;
+  const event = await prisma.importantEvent.findUnique({
+    where: { id },
+    select: { name: true, descriptionHtml: true, startDate: true, tags: true, visibility: true }
+  });
+
+  if (!event || event.visibility !== "PUBLISHED") {
+    return { title: "Not Found" };
+  }
+
+  const plainTextDescription = event.descriptionHtml.replace(/<[^>]*>?/gm, '').substring(0, 150) + "...";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "http://localhost:3000";
+
+  return {
+    title: `${event.name} | MiniCMS`,
+    description: plainTextDescription,
+    openGraph: {
+      title: event.name,
+      description: plainTextDescription,
+      type: "article",
+      publishedTime: event.startDate.toISOString(),
+      tags: event.tags,
+    },
+    alternates: {
+      canonical: `${baseUrl}/published-days/${id}`,
+    },
+  };
+}
 
 type PublishedDayDetailPageProps = {
   params: Promise<{
@@ -42,56 +74,70 @@ export default async function PublishedDayDetailPage({ params }: PublishedDayDet
   }
 
   return (
-    <main className={styles.page}>
-      <section className={styles.container}>
-        <Link href="/published-days" className={styles.backLink}>
+    <main className="min-vh-100 py-4 py-md-5 bg-light">
+      <div className="container">
+        <div className="row justify-content-center">
+        <div className="col-12 col-lg-8">
+
+        <Link href="/published-days" className="btn btn-outline-secondary btn-sm mb-4">
           ← Back to Published Days
         </Link>
 
-        <header className={styles.header}>
-          <h1 className={styles.title}>{event.name}</h1>
-          <p className={styles.date}>
+        <header className="mb-4">
+          <h1 className="display-6 fw-bold text-dark mb-1">{event.name}</h1>
+          <p className="text-muted mb-0">
             {toDateLabel(event.startDate)}
             {toDateLabel(event.startDate) !== toDateLabel(event.endDate)
-              ? ` - ${toDateLabel(event.endDate)}`
+              ? ` – ${toDateLabel(event.endDate)}`
               : ""}
           </p>
         </header>
 
-        <section className={styles.metaCard}>
-          <p className={styles.metaRow}>
-            <span className={styles.metaLabel}>Expected impact:</span>{" "}
-            <span className={event.expectedEffect === "POSITIVE" ? styles.positive : styles.negative}>
-              {event.expectedEffect === "POSITIVE" ? "Positive" : "Negative"}
-            </span>
-          </p>
-
-          {event.user.name && (
-            <p className={styles.metaRow}>
-              <span className={styles.metaLabel}>Shared by:</span> {event.user.name}
-            </p>
-          )}
-
-          {event.tags.length > 0 && (
-            <div className={styles.tagsRow}>
-              {event.tags.map((tag) => (
-                <Link
-                  key={tag}
-                  href={`/published-days?tags=${encodeURIComponent(tag)}`}
-                  className={styles.tag}
-                >
-                  {tag}
-                </Link>
-              ))}
+        <div className="card border-0 shadow-sm mb-4">
+          <div className="card-body">
+            <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
+              <span className="fw-semibold text-dark">Expected impact:</span>
+              <span className={`badge bg-${event.expectedEffect === "POSITIVE" ? "success" : "danger"}`}>
+                {event.expectedEffect === "POSITIVE" ? "Positive" : "Negative"}
+              </span>
             </div>
-          )}
-        </section>
 
-        <section className={styles.contentCard}>
-          <h2 className={styles.sectionTitle}>What Happened</h2>
-          <div className={styles.richText} dangerouslySetInnerHTML={{ __html: event.descriptionHtml }} />
-        </section>
-      </section>
+            {event.user.name && (
+              <p className="mb-3">
+                <span className="fw-semibold text-dark">Shared by:</span>{" "}
+                <span className="text-muted">{event.user.name}</span>
+              </p>
+            )}
+
+            {event.tags.length > 0 && (
+              <div className="d-flex flex-wrap gap-2">
+                {event.tags.map((tag) => (
+                  <Link
+                    key={tag}
+                    href={`/published-days?tags=${encodeURIComponent(tag)}`}
+                    className="badge bg-info text-dark fw-normal text-decoration-none px-2 py-1"
+                  >
+                    {tag}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="card border-0 shadow-sm">
+          <div className="card-body p-3 p-md-4">
+            <h2 className="h5 fw-semibold border-bottom pb-2 mb-3">What Happened</h2>
+            <div
+              className="text-secondary lh-lg"
+              dangerouslySetInnerHTML={{ __html: event.descriptionHtml }}
+            />
+          </div>
+        </div>
+
+        </div>
+        </div>
+      </div>
     </main>
   );
 }

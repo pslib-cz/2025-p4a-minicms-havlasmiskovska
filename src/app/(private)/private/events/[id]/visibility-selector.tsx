@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import styles from "./visibility-selector.module.css";
+
 
 type VisibilitySelectorProps = {
   eventId: string;
@@ -53,22 +53,26 @@ export default function VisibilitySelector({ eventId, currentVisibility }: Visib
   };
 
   return (
-    <div className={styles.container}>
-      <label className={styles.label}>
-        <span>Visibility:</span>
-        <select
-          value={visibility}
-          onChange={(e) => void handleChange(e.target.value)}
-          disabled={isLoading}
-          className={styles.select}
-        >
-          <option value="PRIVATE">Private</option>
-          <option value="NOT_PUBLIC">Not Public</option>
-          <option value="PUBLISHED">Published</option>
-        </select>
+    <div className="d-flex flex-wrap align-items-center mb-2">
+      <label className="fw-bold d-inline-block me-2 mb-0" style={{ minWidth: '130px' }}>
+        Visibility:
       </label>
-      {error && <p className={styles.error}>{error}</p>}
-      {success && <p className={styles.success}>Updated!</p>}
+      <select
+        value={visibility}
+        onChange={(e) => void handleChange(e.target.value)}
+        disabled={isLoading}
+        className="form-select form-select-sm w-auto d-inline-block shadow-sm cursor-pointer"
+      >
+        <option value="PRIVATE">Private</option>
+        <option value="NOT_PUBLIC">Not Public</option>
+        <option value="PUBLISHED">Published</option>
+      </select>
+
+      <div className="ms-3 d-flex align-items-center" style={{ minWidth: '100px' }}>
+        {isLoading && <span className="spinner-border spinner-border-sm text-primary" role="status"></span>}
+        {success && <span className="badge bg-success bg-opacity-10 text-success border border-success"><i className="bi bi-check2"></i> Updated</span>}
+        {error && <span className="badge bg-danger bg-opacity-10 text-danger border border-danger">{error}</span>}
+      </div>
     </div>
   );
 }

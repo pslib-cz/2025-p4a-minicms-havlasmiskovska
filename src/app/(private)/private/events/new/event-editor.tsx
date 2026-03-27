@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import styles from "./event-form.module.css";
+
 
 type UploadedFile = {
   url: string;
@@ -91,39 +91,53 @@ export default function EventEditor({ name }: EventEditorProps) {
   }
 
   return (
-    <div className={styles.editorWrap}>
-      <div className={styles.toolbar}>
-        <button type="button" onClick={() => runCommand("formatBlock", "h1")}>H1</button>
-        <button type="button" onClick={() => runCommand("formatBlock", "h2")}>H2</button>
-        <button type="button" onClick={() => runCommand("insertUnorderedList")}>List</button>
-        <button
-          type="button"
-          onClick={() => {
-            const link = window.prompt("Enter URL");
-            if (link) {
-              runCommand("createLink", link);
-            }
-          }}
-        >
-          Link
-        </button>
-        <button
-          type="button"
-          disabled={isUploading}
-          onClick={() => fileInputRef.current?.click()}
-        >
-          {isUploading ? "Uploading..." : "Attach"}
-        </button>
+    <div className="border border-secondary-subtle rounded-4 shadow-sm overflow-hidden bg-white mb-2">
+      <div className="d-flex flex-wrap align-items-center gap-3 p-3 bg-light border-bottom border-secondary-subtle">
+        <div className="btn-group shadow-sm">
+          <button className="btn btn-outline-secondary fw-bold px-3" type="button" onClick={() => runCommand("formatBlock", "p")}>Normal</button>
+          <button className="btn btn-outline-secondary fw-bold px-3" type="button" onClick={() => runCommand("formatBlock", "h1")}>H1</button>
+          <button className="btn btn-outline-secondary fw-bold px-3" type="button" onClick={() => runCommand("formatBlock", "h2")}>H2</button>
+        </div>
+        
+        <div className="btn-group shadow-sm">
+          <button className="btn btn-outline-secondary px-3" type="button" onClick={() => runCommand("insertUnorderedList")}>
+            • List
+          </button>
+          <button
+            className="btn btn-outline-secondary px-3"
+            type="button"
+            onClick={() => {
+              const link = window.prompt("Enter URL");
+              if (link) {
+                runCommand("createLink", link);
+              }
+            }}
+          >
+            🔗 Link
+          </button>
+        </div>
+        
+        <div className="ms-auto">
+          <button
+            className="btn btn-primary fw-bold shadow-sm px-4"
+            type="button"
+            disabled={isUploading}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {isUploading ? "Uploading..." : "📎 Attach File"}
+          </button>
+        </div>
       </div>
 
       <div
         ref={editorRef}
-        className={styles.editor}
+        className="p-4 fs-5"
+        style={{ minHeight: '300px', outline: 'none' }}
         contentEditable
         suppressContentEditableWarning
         onInput={syncHiddenInput}
       >
-        <p>Describe what happened...</p>
+        <p className="text-muted">Describe what happened...</p>
       </div>
 
       <input type="hidden" name={name} id={name} />

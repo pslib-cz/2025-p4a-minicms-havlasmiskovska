@@ -2,7 +2,7 @@
 
 import { useId } from "react";
 import type { MetricPoint } from "./metric-chart";
-import styles from "./private-page.module.css";
+
 
 type CombinedSeries = {
   label: string;
@@ -105,35 +105,54 @@ function buildTicks(timestamps: number[]): ChartTick[] {
   const sorted = [...timestamps].sort((a, b) => a - b);
   const first = sorted[0];
   const last = sorted[sorted.length - 1];
-  const spanDays = (last - first) / (1000 * 60 * 60 * 24);
+  const tsRange = last - first || 1;
+  const spanDays = tsRange / (1000 * 60 * 60 * 24);
   const useYearlyTicks = spanDays > 550;
+  const useMonthlyTicks = spanDays <= 90;
 
   const seen = new Set<string>();
   const ticks: ChartTick[] = [];
+  let lastTimestamp = -Infinity;
 
   for (const timestamp of sorted) {
     const date = new Date(timestamp);
     const year = date.getUTCFullYear();
-    const quarter = Math.floor(date.getUTCMonth() / 3) + 1;
-    const key = useYearlyTicks ? `${year}` : `${year}-Q${quarter}`;
+    const month = date.getUTCMonth() + 1;
+    const quarter = Math.floor((month - 1) / 3) + 1;
+    
+    let key = "";
+    let label = "";
+    
+    if (useYearlyTicks) {
+      key = `${year}`;
+      label = `${year}`;
+    } else if (useMonthlyTicks) {
+      key = `${year}-${month}`;
+      const monthName = date.toLocaleString('en', { month: 'short' });
+      label = `${monthName} ${year}`;
+    } else {
+      key = `${year}-Q${quarter}`;
+      label = `Q${quarter} ${year}`;
+    }
 
     if (seen.has(key)) {
+      continue;
+    }
+
+    // Ensure at least 8% of the chart width distance between ticks
+    if (lastTimestamp !== -Infinity && (timestamp - lastTimestamp) / tsRange < 0.08) {
       continue;
     }
 
     seen.add(key);
     ticks.push({
       timestamp,
-      label: useYearlyTicks ? `${year}` : `Q${quarter} ${year}`,
+      label,
     });
+    lastTimestamp = timestamp;
   }
 
-  if (ticks.length <= 8) {
-    return ticks;
-  }
-
-  const step = Math.ceil((ticks.length - 1) / 7);
-  return ticks.filter((_, idx) => idx % step === 0 || idx === ticks.length - 1);
+  return ticks;
 }
 
 export default function CombinedChart({
@@ -157,7 +176,7 @@ export default function CombinedChart({
 
   const allTimestamps = normalized.flatMap((item) => item.points.map((point) => point.timestamp));
   if (allTimestamps.length < 2) {
-    return <p className={styles.emptyState}>Not enough data to render combined chart.</p>;
+    return <p className="text-muted fst-italic p-4 text-center border rounded">Not enough data to render combined chart.</p>;
   }
 
   const minTimestamp = Math.min(...allTimestamps);
@@ -185,12 +204,13 @@ export default function CombinedChart({
     .filter((event) => event.timestamp >= minTimestamp && event.timestamp <= maxTimestamp);
 
   return (
-    <div className={styles.chartWrap}>
+    <div className="position-relative w-100 mt-2 mb-4">
       <svg
         viewBox={`0 0 ${width} ${height}`}
-        className={styles.chart}
+        className="w-100 h-auto"
         role="img"
         aria-label={chartLabel}
+        style={{ overflow: 'visible' }}
       >
         {ticks.map((tick, idx) => {
           const x = toX(tick.timestamp);
@@ -207,7 +227,14 @@ export default function CombinedChart({
                 strokeWidth="1"
                 strokeDasharray="4 5"
               />
-              <text x={x} y={tickLabelY} textAnchor={textAnchor} className={styles.chartTickLabel}>
+              <text 
+                x={x} 
+                y={tickLabelY} 
+                textAnchor={textAnchor} 
+                fill="#64748b" 
+                fontSize="12"
+                fontFamily="system-ui, -apple-system, sans-serif"
+              >
                 {tick.label}
               </text>
             </g>
@@ -229,7 +256,14 @@ export default function CombinedChart({
                 strokeWidth="1.5"
                 strokeDasharray="6 5"
               />
-              <text x={x + 4} y={padding + 12} className={styles.eventChartLabel} fill={markerColor}>
+              <text 
+                x={x + 4} 
+                y={padding + 12} 
+                fill={markerColor} 
+                fontSize="11" 
+                fontWeight="bold"
+                fontFamily="system-ui, -apple-system, sans-serif"
+              >
                 {event.name}
               </text>
             </g>
@@ -279,10 +313,10 @@ export default function CombinedChart({
         })}
       </svg>
 
-      <div className={styles.legend}>
+      <div className="d-flex flex-wrap justify-content-center gap-4 mt-3">
         {normalized.map((item) => (
-          <span key={item.label} className={styles.legendItem}>
-            <span className={styles.legendDot} style={{ backgroundColor: item.color }} />
+          <span key={item.label} className="d-flex align-items-center fw-bold text-secondary small">
+            <span className="rounded-circle me-2 shadow-sm" style={{ backgroundColor: item.color, width: '12px', height: '12px' }} />
             {item.label}
           </span>
         ))}

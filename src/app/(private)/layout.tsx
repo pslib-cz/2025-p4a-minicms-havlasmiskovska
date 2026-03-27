@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import PrivateSidebar from "./private-sidebar";
-import styles from "./private-shell.module.css";
+
 
 export default async function PrivateLayout({
   children,
@@ -31,9 +31,13 @@ export default async function PrivateLayout({
   }
 
   return (
-    <div className={styles.shell}>
+    <div className="d-flex flex-column flex-md-row vh-100 overflow-hidden bg-light">
       <PrivateSidebar email={session.user?.email ?? "Signed user"} />
-      <div className={styles.main}>{children}</div>
+      <div className="flex-grow-1 overflow-auto px-3 px-md-4 py-3 py-md-4">
+        <div className="container-xxl mx-auto">
+          {children}
+        </div>
+      </div>
     </div>
   );
 }

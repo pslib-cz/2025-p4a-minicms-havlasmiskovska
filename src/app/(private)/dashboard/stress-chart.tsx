@@ -1,7 +1,7 @@
 "use client";
 
 import { useId } from "react";
-import styles from "./dashboard.module.css";
+
 
 type MetricPoint = {
   date: string;
@@ -139,7 +139,7 @@ export default function MetricChart({
   );
 
   if (valuePoints.length < 2) {
-    return <p className={styles.emptyState}>Not enough stress data to render a chart yet.</p>;
+    return <p className="text-muted fst-italic p-4 text-center border rounded">Not enough stress data to render a chart yet.</p>;
   }
 
   const minValue = Math.min(...valuePoints.map((point) => point.value as number));
@@ -161,10 +161,10 @@ export default function MetricChart({
   const lastLabel = points[points.length - 1]?.date ?? "";
 
   return (
-    <div className={styles.chartWrap}>
+    <div className="chartWrap">
       <svg
         viewBox={`0 0 ${width} ${height}`}
-        className={styles.chart}
+        className="chart"
         role="img"
         aria-label={`${metricLabel} trend`}
       >
@@ -194,7 +194,7 @@ export default function MetricChart({
                 x={x}
                 y={tickLabelY}
                 textAnchor={textAnchor}
-                className={styles.chartTickLabel}
+                className="chartTickLabel"
               >
                 {tick.label}
               </text>
@@ -240,7 +240,7 @@ export default function MetricChart({
         />
       </svg>
 
-      <div className={styles.chartLabels}>
+      <div className="chartLabels">
         <span>{firstLabel}</span>
         <span>{lastLabel}</span>
       </div>
