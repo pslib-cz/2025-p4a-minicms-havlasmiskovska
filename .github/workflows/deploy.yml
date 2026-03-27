@@ -185,19 +185,3 @@ jobs:
                       fi
 
                       echo "Deployment finished for ${DOMAIN}."
-
-            - name: Dump app logs for debugging
-              uses: appleboy/ssh-action@v1.2.0
-              with:
-                  host: ${{ secrets.VPS_HOST }}
-                  username: ${{ secrets.VPS_USER }}
-                  key: ${{ secrets.VPS_SSH_KEY }}
-                  fingerprint: ${{ secrets.VPS_HOST_FINGERPRINT }}
-                  script: |
-                      echo "=== Hitting pages to trigger any runtime errors ==="
-                      curl -s -o /dev/null -w "GET / → %{http_code}\n" http://127.0.0.1:3001/ || true
-                      curl -s -o /dev/null -w "GET /published-days → %{http_code}\n" http://127.0.0.1:3001/published-days || true
-                      curl -s -o /dev/null -w "GET /login → %{http_code}\n" http://127.0.0.1:3001/login || true
-                      sleep 3
-                      echo "=== App logs after page hits ==="
-                      sudo docker logs minicms-app --tail=200 2>&1 || true
