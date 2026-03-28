@@ -175,12 +175,15 @@ jobs:
                       DB_URL="postgresql://${DB_USER}:${DB_PASS}@db:5432/${DB_NAME}?schema=public"
                       sudo docker run --rm \
                         --network vps-network \
-                        -e DATABASE_URL="${DB_URL}" \
-                        -v "${APP_DIR}/prisma/schema.prisma:/app/schema.prisma" \
-                        -v "${APP_DIR}/prisma/migrations:/app/migrations" \
+                        -e DB_URL="${DB_URL}" \
+                        -v "${APP_DIR}/prisma:/app/prisma" \
                         -w /app \
                         node:20-alpine \
-                        sh -c "npm install -g prisma@7 --silent 2>&1 | tail -1 && prisma migrate deploy --schema=/app/schema.prisma" 2>&1 || \
+                        sh -c "
+                          npm install prisma@7 --save-exact --silent 2>&1 | tail -2
+                          printf 'import { defineConfig } from \"prisma/config\";\nexport default defineConfig({ schema: \"prisma/schema.prisma\", migrations: { path: \"prisma/migrations\" }, datasource: { url: process.env.DB_URL } });' > prisma.config.ts
+                          node_modules/.bin/prisma migrate deploy
+                        " 2>&1 || \
                         echo "WARNING: Prisma migrate failed — check logs"
 
                       # Wait for app readiness
