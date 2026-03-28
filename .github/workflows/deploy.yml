@@ -143,29 +143,37 @@ jobs:
                       sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" config -q
 
                       # Diagnose existing DB roles (no data loss)
-                      echo "=== Checking existing DB roles ==="
+                      echo "=== Creating postgres role via single-user mode ==="
                       sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" up -d db
                       sleep 5
-                      echo "=== Trying common role names (trust auth) ==="
-                      for user in app admin minicms cms user dbuser appuser deploy ubuntu nextjs havlas jakub; do
-                        result=$(sudo docker exec minicms-db psql -U "$user" -d postgres -tAc "SELECT current_user;" 2>/dev/null || true)
-                        if [ -n "$result" ]; then
-                          echo "SUCCESS: DB role is '$result'"
-                          sudo docker exec minicms-db psql -U "$user" -d postgres -c "\du" 2>&1 || true
-                          break
-                        else
-                          echo "Role '$user' — not found"
-                        fi
-                      done
+                      VOLUME_NAME=$(sudo docker volume ls --format '{{.Name}}' | grep postgres_data | head -1)
+                      echo "Using volume: ${VOLUME_NAME}"
+                      sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" stop db || true
+                      sleep 3
+                      DB_PASS="$(sudo grep -E '^POSTGRES_PASSWORD=' "${APP_DIR}/.env" | tail -n1 | cut -d'=' -f2-)"
+                      echo "CREATE ROLE postgres SUPERUSER LOGIN PASSWORD '${DB_PASS}';" | \
+                        sudo docker run --rm -i \
+                          --user postgres \
+                          -v "${VOLUME_NAME}:/var/lib/postgresql/data" \
+                          postgres:16 \
+                          postgres --single -D /var/lib/postgresql/data template1 2>&1 || \
+                        echo "Single-user mode result above (errors about 'already exists' are OK)"
+                      echo "Role creation done, restarting DB..."
 
                       sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" build --pull
                       sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" up -d --remove-orphans
 
-                      # Run database migrations via app container
+                      # Run database migrations via temporary node container
                       echo "Running Prisma migrations..."
                       DB_URL="postgresql://$(sudo grep -E '^POSTGRES_USER=' "${APP_DIR}/.env" | tail -n1 | cut -d'=' -f2-):$(sudo grep -E '^POSTGRES_PASSWORD=' "${APP_DIR}/.env" | tail -n1 | cut -d'=' -f2-)@db:5432/$(sudo grep -E '^POSTGRES_DB=' "${APP_DIR}/.env" | tail -n1 | cut -d'=' -f2-)?schema=public"
-                      sudo docker exec -e DATABASE_URL_DOCKER="${DB_URL}" minicms-app \
-                        node_modules/.bin/prisma migrate deploy --schema=prisma/schema.prisma 2>&1 || \
+                      sudo docker run --rm \
+                        --network vps-network \
+                        -e DATABASE_URL_DOCKER="${DB_URL}" \
+                        -v "${APP_DIR}/prisma:/app/prisma" \
+                        -v "${APP_DIR}/prisma.config.ts:/app/prisma.config.ts" \
+                        -w /app \
+                        node:20-alpine \
+                        sh -c "npm install -g prisma@7 --silent 2>/dev/null && prisma migrate deploy --schema=/app/prisma/schema.prisma" 2>&1 || \
                         echo "WARNING: Prisma migrate failed — check logs"
 
                       # Wait for app readiness
