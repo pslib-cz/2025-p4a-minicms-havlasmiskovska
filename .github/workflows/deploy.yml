@@ -141,8 +141,23 @@ jobs:
 
                       # Build and deploy Docker containers
                       sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" config -q
+
+                      # Diagnose existing DB roles (no data loss)
+                      echo "=== Checking existing DB roles ==="
+                      sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" up -d db
+                      sleep 5
+                      sudo docker exec minicms-db psql -U "$(sudo docker exec minicms-db bash -c 'ls /var/lib/postgresql/data/global/ 2>/dev/null && cat /var/lib/postgresql/data/PG_VERSION 2>/dev/null || echo unknown')" -c "\du" 2>/dev/null || \
+                      sudo docker exec minicms-db bash -c "psql -U \$(id -un) -c '\\du' 2>/dev/null || psql -c '\\du' 2>/dev/null || echo 'Could not list roles'" || true
+
                       sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" build --pull
                       sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" up -d --remove-orphans
+
+                      # Run database migrations via app container
+                      echo "Running Prisma migrations..."
+                      DB_URL="postgresql://$(sudo grep -E '^POSTGRES_USER=' "${APP_DIR}/.env" | tail -n1 | cut -d'=' -f2-):$(sudo grep -E '^POSTGRES_PASSWORD=' "${APP_DIR}/.env" | tail -n1 | cut -d'=' -f2-)@db:5432/$(sudo grep -E '^POSTGRES_DB=' "${APP_DIR}/.env" | tail -n1 | cut -d'=' -f2-)?schema=public"
+                      sudo docker exec -e DATABASE_URL_DOCKER="${DB_URL}" minicms-app \
+                        node_modules/.bin/prisma migrate deploy --schema=prisma/schema.prisma 2>&1 || \
+                        echo "WARNING: Prisma migrate failed — check logs"
 
                       # Wait for app readiness
                       max_attempts=120
