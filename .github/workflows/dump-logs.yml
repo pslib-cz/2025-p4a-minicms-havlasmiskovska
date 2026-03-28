@@ -1,0 +1,23 @@
+name: Dump App Logs
+
+on:
+    workflow_dispatch:
+
+jobs:
+    dump-logs:
+        runs-on: ubuntu-latest
+        environment: production
+        steps:
+            - name: Dump logs from VPS
+              uses: appleboy/ssh-action@v1.2.0
+              with:
+                  host: ${{ secrets.VPS_HOST }}
+                  username: ${{ secrets.VPS_USER }}
+                  key: ${{ secrets.VPS_SSH_KEY }}
+                  fingerprint: ${{ secrets.VPS_HOST_FINGERPRINT }}
+                  script: |
+                      echo "=== App logs (last 100 lines) ==="
+                      sudo docker logs minicms-app --tail=100 2>&1 || true
+                      echo ""
+                      echo "=== DB logs (last 30 lines) ==="
+                      sudo docker logs minicms-db --tail=30 2>&1 || true
