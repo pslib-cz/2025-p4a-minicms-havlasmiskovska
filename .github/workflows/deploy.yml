@@ -236,7 +236,9 @@ jobs:
                   key: ${{ secrets.VPS_SSH_KEY }}
                   fingerprint: ${{ secrets.VPS_HOST_FINGERPRINT }}
                   script: |
-                      echo "=== App logs ==="
-                      sudo docker logs minicms-app --tail=300 2>&1 || true
-                      echo "=== DB logs ==="
-                      sudo docker logs minicms-db --tail=50 2>&1 || true
+                      echo "=== Container status ==="
+                      sudo docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" || true
+                      echo "=== App logs (last 100) ==="
+                      sudo docker logs minicms-app --tail=100 2>&1 || true
+                      echo "=== DB logs (last 20) ==="
+                      sudo docker logs minicms-db --tail=20 2>&1 || true
