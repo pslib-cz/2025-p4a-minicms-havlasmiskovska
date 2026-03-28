@@ -146,8 +146,8 @@ jobs:
                       echo "=== Creating postgres role via single-user mode ==="
                       sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" up -d db
                       sleep 5
-                      VOLUME_NAME=$(sudo docker volume ls --format '{{.Name}}' | grep postgres_data | head -1)
-                      echo "Using volume: ${VOLUME_NAME}"
+                      VOLUME_NAME=$(sudo docker inspect minicms-db --format '{{range .Mounts}}{{if eq .Type "volume"}}{{.Name}}{{end}}{{end}}' 2>/dev/null | head -1)
+                      echo "Using volume from minicms-db: ${VOLUME_NAME}"
                       sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" stop db || true
                       sleep 3
                       DB_PASS="$(sudo grep -E '^POSTGRES_PASSWORD=' "${APP_DIR}/.env" | tail -n1 | cut -d'=' -f2-)"
