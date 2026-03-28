@@ -141,50 +141,8 @@ jobs:
 
                       # Build and deploy Docker containers
                       sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" config -q
-
-                      # Diagnose existing DB roles (no data loss)
-                      echo "=== Creating postgres role via single-user mode ==="
-                      sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" up -d db
-                      sleep 5
-                      VOLUME_NAME=$(sudo docker inspect minicms-db --format '{{range .Mounts}}{{if eq .Type "volume"}}{{.Name}}{{end}}{{end}}' 2>/dev/null | head -1)
-                      echo "Using volume from minicms-db: ${VOLUME_NAME}"
-                      sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" stop db || true
-                      sleep 3
-                      DB_PASS="$(sudo grep -E '^POSTGRES_PASSWORD=' "${APP_DIR}/.env" | tail -n1 | cut -d'=' -f2-)"
-                      echo "CREATE ROLE postgres SUPERUSER LOGIN PASSWORD '${DB_PASS}';" | \
-                        sudo docker run --rm -i \
-                          --user postgres \
-                          -v "${VOLUME_NAME}:/var/lib/postgresql/data" \
-                          postgres:16 \
-                          postgres --single -D /var/lib/postgresql/data template1 2>&1 || \
-                        echo "Single-user mode result above (errors about 'already exists' are OK)"
-                      echo "Role creation done, restarting DB..."
                       sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" build --pull
                       sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" up -d --remove-orphans
-
-                      # Create database if it doesn't exist
-                      echo "Creating database if missing..."
-                      DB_NAME="$(sudo grep -E '^POSTGRES_DB=' "${APP_DIR}/.env" | tail -n1 | cut -d'=' -f2-)"
-                      DB_USER="$(sudo grep -E '^POSTGRES_USER=' "${APP_DIR}/.env" | tail -n1 | cut -d'=' -f2-)"
-                      DB_PASS="$(sudo grep -E '^POSTGRES_PASSWORD=' "${APP_DIR}/.env" | tail -n1 | cut -d'=' -f2-)"
-                      sleep 5
-                      sudo docker exec minicms-db psql -U "${DB_USER}" -c "CREATE DATABASE \"${DB_NAME}\";" 2>&1 || echo "Database already exists or creation failed (see above)"
-
-                      # Run database migrations
-                      echo "Running Prisma migrations..."
-                      DB_URL="postgresql://${DB_USER}:${DB_PASS}@db:5432/${DB_NAME}?schema=public"
-                      sudo docker run --rm \
-                        --network vps-network \
-                        -e DB_URL="${DB_URL}" \
-                        -v "${APP_DIR}/prisma:/app/prisma" \
-                        -w /app \
-                        node:20-alpine \
-                        sh -c "
-                          npm install prisma@7 --save-exact --silent 2>&1 | tail -2
-                          printf 'import { defineConfig } from \"prisma/config\";\nexport default defineConfig({ schema: \"prisma/schema.prisma\", migrations: { path: \"prisma/migrations\" }, datasource: { url: process.env.DB_URL } });' > prisma.config.ts
-                          node_modules/.bin/prisma migrate deploy
-                        " 2>&1 || \
-                        echo "WARNING: Prisma migrate failed — check logs"
 
                       # Wait for app readiness
                       max_attempts=120
@@ -227,27 +185,3 @@ jobs:
                       fi
 
                       echo "Deployment finished for ${DOMAIN}."
-
-                      # Ensure nginx can reach the app container
-                      echo "Connecting infra-nginx to vps-network if needed..."
-                      sudo docker network connect vps-network infra-nginx 2>/dev/null || echo "infra-nginx already on vps-network"
-                      sudo docker exec infra-nginx nginx -s reload 2>/dev/null || true
-
-            - name: Dump app logs for debugging
-              uses: appleboy/ssh-action@v1.2.0
-              with:
-                  host: ${{ secrets.VPS_HOST }}
-                  username: ${{ secrets.VPS_USER }}
-                  key: ${{ secrets.VPS_SSH_KEY }}
-                  fingerprint: ${{ secrets.VPS_HOST_FINGERPRINT }}
-                  script: |
-                      echo "=== Container status ==="
-                      sudo docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" || true
-                      echo "=== App logs (last 100) ==="
-                      sudo docker logs minicms-app --tail=100 2>&1 || true
-                      echo "=== DB logs (last 20) ==="
-                      sudo docker logs minicms-db --tail=20 2>&1 || true
-                      echo "=== Nginx config for cms domain ==="
-                      sudo docker exec infra-nginx sh -c "grep -r 'cms\|3001\|minicms' /etc/nginx/conf.d/ /etc/nginx/sites-enabled/ 2>/dev/null || echo 'No cms config found'"
-                      echo "=== All nginx configs ==="
-                      sudo docker exec infra-nginx sh -c "ls /etc/nginx/conf.d/ /etc/nginx/sites-enabled/ 2>/dev/null" || true
