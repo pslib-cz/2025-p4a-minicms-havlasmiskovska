@@ -242,3 +242,7 @@ jobs:
                       sudo docker logs minicms-app --tail=100 2>&1 || true
                       echo "=== DB logs (last 20) ==="
                       sudo docker logs minicms-db --tail=20 2>&1 || true
+                      echo "=== Nginx config for cms domain ==="
+                      sudo docker exec infra-nginx sh -c "grep -r 'cms\|3001\|minicms' /etc/nginx/conf.d/ /etc/nginx/sites-enabled/ 2>/dev/null || echo 'No cms config found'"
+                      echo "=== All nginx configs ==="
+                      sudo docker exec infra-nginx sh -c "ls /etc/nginx/conf.d/ /etc/nginx/sites-enabled/ 2>/dev/null" || true
