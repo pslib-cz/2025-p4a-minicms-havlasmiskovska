@@ -159,21 +159,28 @@ jobs:
                           postgres --single -D /var/lib/postgresql/data template1 2>&1 || \
                         echo "Single-user mode result above (errors about 'already exists' are OK)"
                       echo "Role creation done, restarting DB..."
-
                       sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" build --pull
                       sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" up -d --remove-orphans
 
-                      # Run database migrations via temporary node container
+                      # Create database if it doesn't exist
+                      echo "Creating database if missing..."
+                      DB_NAME="$(sudo grep -E '^POSTGRES_DB=' "${APP_DIR}/.env" | tail -n1 | cut -d'=' -f2-)"
+                      DB_USER="$(sudo grep -E '^POSTGRES_USER=' "${APP_DIR}/.env" | tail -n1 | cut -d'=' -f2-)"
+                      DB_PASS="$(sudo grep -E '^POSTGRES_PASSWORD=' "${APP_DIR}/.env" | tail -n1 | cut -d'=' -f2-)"
+                      sleep 5
+                      sudo docker exec minicms-db psql -U "${DB_USER}" -c "CREATE DATABASE \"${DB_NAME}\";" 2>&1 || echo "Database already exists or creation failed (see above)"
+
+                      # Run database migrations
                       echo "Running Prisma migrations..."
-                      DB_URL="postgresql://$(sudo grep -E '^POSTGRES_USER=' "${APP_DIR}/.env" | tail -n1 | cut -d'=' -f2-):$(sudo grep -E '^POSTGRES_PASSWORD=' "${APP_DIR}/.env" | tail -n1 | cut -d'=' -f2-)@db:5432/$(sudo grep -E '^POSTGRES_DB=' "${APP_DIR}/.env" | tail -n1 | cut -d'=' -f2-)?schema=public"
+                      DB_URL="postgresql://${DB_USER}:${DB_PASS}@db:5432/${DB_NAME}?schema=public"
                       sudo docker run --rm \
                         --network vps-network \
-                        -e DATABASE_URL_DOCKER="${DB_URL}" \
-                        -v "${APP_DIR}/prisma:/app/prisma" \
-                        -v "${APP_DIR}/prisma.config.ts:/app/prisma.config.ts" \
+                        -e DATABASE_URL="${DB_URL}" \
+                        -v "${APP_DIR}/prisma/schema.prisma:/app/schema.prisma" \
+                        -v "${APP_DIR}/prisma/migrations:/app/migrations" \
                         -w /app \
                         node:20-alpine \
-                        sh -c "npm install -g prisma@7 --silent 2>/dev/null && prisma migrate deploy --schema=/app/prisma/schema.prisma" 2>&1 || \
+                        sh -c "npm install -g prisma@7 --silent 2>&1 | tail -1 && prisma migrate deploy --schema=/app/schema.prisma" 2>&1 || \
                         echo "WARNING: Prisma migrate failed — check logs"
 
                       # Wait for app readiness
