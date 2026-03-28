@@ -184,4 +184,9 @@ jobs:
                         exit 1
                       fi
 
+                      # Run database seed after successful deployment
+                      echo "Running prisma seed..."
+                      cd "${APP_DIR}"
+                      npm run prisma:seed:once:vps
+
                       echo "Deployment finished for ${DOMAIN}."
