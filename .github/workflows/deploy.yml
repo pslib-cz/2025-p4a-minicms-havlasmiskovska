@@ -228,6 +228,11 @@ jobs:
 
                       echo "Deployment finished for ${DOMAIN}."
 
+                      # Ensure nginx can reach the app container
+                      echo "Connecting infra-nginx to vps-network if needed..."
+                      sudo docker network connect vps-network infra-nginx 2>/dev/null || echo "infra-nginx already on vps-network"
+                      sudo docker exec infra-nginx nginx -s reload 2>/dev/null || true
+
             - name: Dump app logs for debugging
               uses: appleboy/ssh-action@v1.2.0
               with:
