@@ -146,8 +146,7 @@ jobs:
                       echo "=== Checking existing DB roles ==="
                       sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" up -d db
                       sleep 5
-                      sudo docker exec minicms-db psql -U "$(sudo docker exec minicms-db bash -c 'ls /var/lib/postgresql/data/global/ 2>/dev/null && cat /var/lib/postgresql/data/PG_VERSION 2>/dev/null || echo unknown')" -c "\du" 2>/dev/null || \
-                      sudo docker exec minicms-db bash -c "psql -U \$(id -un) -c '\\du' 2>/dev/null || psql -c '\\du' 2>/dev/null || echo 'Could not list roles'" || true
+                      sudo docker exec --user postgres minicms-db psql -c "\du" 2>&1 || true
 
                       sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" build --pull
                       sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" up -d --remove-orphans
