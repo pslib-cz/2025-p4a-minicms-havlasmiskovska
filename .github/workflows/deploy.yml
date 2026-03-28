@@ -146,10 +146,17 @@ jobs:
                       echo "=== Checking existing DB roles ==="
                       sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" up -d db
                       sleep 5
-                      echo "=== Role names from pg_authid binary ==="
-                      sudo docker exec minicms-db sh -c "strings /var/lib/postgresql/data/global/pg_authid 2>/dev/null | head -30" 2>&1 || true
-                      echo "=== pg_hba.conf ==="
-                      sudo docker exec minicms-db sh -c "cat /var/lib/postgresql/data/pg_hba.conf 2>/dev/null" 2>&1 || true
+                      echo "=== Trying common role names (trust auth) ==="
+                      for user in app admin minicms cms user dbuser appuser deploy ubuntu nextjs havlas jakub; do
+                        result=$(sudo docker exec minicms-db psql -U "$user" -d postgres -tAc "SELECT current_user;" 2>/dev/null || true)
+                        if [ -n "$result" ]; then
+                          echo "SUCCESS: DB role is '$result'"
+                          sudo docker exec minicms-db psql -U "$user" -d postgres -c "\du" 2>&1 || true
+                          break
+                        else
+                          echo "Role '$user' — not found"
+                        fi
+                      done
 
                       sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" build --pull
                       sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" up -d --remove-orphans
