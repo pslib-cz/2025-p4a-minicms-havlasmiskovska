@@ -141,6 +141,54 @@ jobs:
 
                       # Build and deploy Docker containers
                       sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" config -q
+
+                      # Ensure the POSTGRES_USER role and database exist before starting the app.
+                      # The postgres image only creates them on first init; pre-existing volumes skip this.
+                      DB_USER="$(sudo grep -E '^POSTGRES_USER=' "${APP_DIR}/.env" | tail -n1 | cut -d'=' -f2-)"
+                      DB_PASS="$(sudo grep -E '^POSTGRES_PASSWORD=' "${APP_DIR}/.env" | tail -n1 | cut -d'=' -f2-)"
+                      DB_NAME="$(sudo grep -E '^POSTGRES_DB=' "${APP_DIR}/.env" | tail -n1 | cut -d'=' -f2-)"
+
+                      echo "=== Ensuring DB role '${DB_USER}' and database '${DB_NAME}' exist ==="
+                      sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" up -d db
+                      sleep 5
+
+                      # Create the role if it doesn't exist (ignore "already exists" errors)
+                      sudo docker exec minicms-db psql -U postgres -c \
+                        "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = '${DB_USER}') THEN CREATE ROLE \"${DB_USER}\" LOGIN PASSWORD '${DB_PASS}'; END IF; END \$\$;" 2>&1 || \
+                        echo "WARNING: Could not create role '${DB_USER}' via postgres superuser (see above)"
+
+                      # Also update password in case it changed
+                      sudo docker exec minicms-db psql -U postgres -c \
+                        "ALTER ROLE \"${DB_USER}\" WITH LOGIN PASSWORD '${DB_PASS}';" 2>&1 || \
+                        echo "WARNING: Could not update role password (see above)"
+
+                      # Grant superuser so Prisma migrations work
+                      sudo docker exec minicms-db psql -U postgres -c \
+                        "ALTER ROLE \"${DB_USER}\" WITH SUPERUSER;" 2>&1 || true
+
+                      # Create the database if missing
+                      sudo docker exec minicms-db psql -U postgres -c \
+                        "SELECT 1 FROM pg_database WHERE datname = '${DB_NAME}';" | grep -q 1 || \
+                        sudo docker exec minicms-db psql -U postgres -c \
+                          "CREATE DATABASE \"${DB_NAME}\" OWNER \"${DB_USER}\";" 2>&1 || \
+                        echo "WARNING: Could not create database '${DB_NAME}' (see above)"
+
+                      # Run Prisma migrations before starting the app
+                      echo "Running Prisma migrations..."
+                      MIGRATE_DB_URL="postgresql://${DB_USER}:${DB_PASS}@db:5432/${DB_NAME}?schema=public"
+                      sudo docker run --rm \
+                        --network vps-network \
+                        -e DB_URL="${MIGRATE_DB_URL}" \
+                        -v "${APP_DIR}/prisma:/app/prisma" \
+                        -w /app \
+                        node:20-alpine \
+                        sh -c "
+                          npm install prisma@7 --save-exact --silent 2>&1 | tail -2
+                          printf 'import { defineConfig } from \"prisma/config\";\nexport default defineConfig({ schema: \"prisma/schema.prisma\", migrations: { path: \"prisma/migrations\" }, datasource: { url: process.env.DB_URL } });' > prisma.config.ts
+                          node_modules/.bin/prisma migrate deploy
+                        " 2>&1 || \
+                        echo "WARNING: Prisma migrate failed — check logs"
+
                       sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" build --pull
                       sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" up -d --remove-orphans
 

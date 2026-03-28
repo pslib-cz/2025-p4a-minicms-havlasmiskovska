@@ -131,10 +131,27 @@ export const authOptions: NextAuthOptions = {
     },
     pages: {
         signIn: "/login",
+        error: "/login",
+    },
+    callbacks: {
+        async signIn({ user, account }) {
+            if (!account) {
+                console.error("[next-auth][signIn] No account in callback");
+                return false;
+            }
+            console.log(
+                `[next-auth][signIn] provider=${account.provider} user=${user.email ?? user.id}`,
+            );
+            return true;
+        },
     },
     logger: {
         error(code, metadata) {
-            console.error("[next-auth][error]", code, metadata);
+            const msg =
+                metadata && typeof metadata === "object" && "message" in metadata
+                    ? (metadata as { message?: string }).message
+                    : "";
+            console.error("[next-auth][error]", code, msg, metadata);
         },
         warn(code) {
             console.warn("[next-auth][warn]", code);

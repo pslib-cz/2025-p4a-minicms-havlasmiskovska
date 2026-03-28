@@ -17,11 +17,13 @@ function getErrorMessage(errorCode: string | undefined) {
     return null;
   }
 
-  if (errorCode === "InvalidDate") {
-    return "Please enter a valid date.";
-  }
+  const messages: Record<string, string> = {
+    InvalidDate: "Please enter a valid date.",
+    DatabaseError: "Database connection failed. The server cannot reach the database — this is not your fault. Please try again later or contact the administrator.",
+    NotAuthenticated: "Your session has expired or is invalid. Please sign in again.",
+  };
 
-  return "Could not save this day. Please check your values and try again.";
+  return messages[errorCode] ?? "Could not save this day. Please check your values and try again.";
 }
 
 export default async function AddDayPage({ searchParams }: AddDayPageProps) {
