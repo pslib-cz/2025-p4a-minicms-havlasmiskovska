@@ -146,7 +146,10 @@ jobs:
                       echo "=== Checking existing DB roles ==="
                       sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" up -d db
                       sleep 5
-                      sudo docker exec --user postgres minicms-db psql -c "\du" 2>&1 || true
+                      echo "=== Role names from pg_authid binary ==="
+                      sudo docker exec minicms-db sh -c "strings /var/lib/postgresql/data/global/pg_authid 2>/dev/null | head -30" 2>&1 || true
+                      echo "=== pg_hba.conf ==="
+                      sudo docker exec minicms-db sh -c "cat /var/lib/postgresql/data/pg_hba.conf 2>/dev/null" 2>&1 || true
 
                       sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" build --pull
                       sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" up -d --remove-orphans
