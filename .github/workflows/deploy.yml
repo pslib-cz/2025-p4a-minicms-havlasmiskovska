@@ -235,6 +235,17 @@ jobs:
                       # Run database seed after successful deployment
                       echo "Running prisma seed..."
                       cd "${APP_DIR}"
+
+                      # Ensure DATABASE_URL in .env uses the host-accessible port (5434)
+                      # matching the docker-compose port mapping, so host-side tools
+                      # (prisma db push, seed) connect to the containerised database.
+                      HOST_DB_URL="postgresql://${DB_USER}:${DB_PASS}@127.0.0.1:5434/${DB_NAME}?schema=public"
+                      if sudo grep -q '^DATABASE_URL=' "${APP_DIR}/.env"; then
+                        sudo sed -i "s|^DATABASE_URL=.*|DATABASE_URL=${HOST_DB_URL}|" "${APP_DIR}/.env"
+                      else
+                        echo "DATABASE_URL=${HOST_DB_URL}" | sudo tee -a "${APP_DIR}/.env" > /dev/null
+                      fi
+
                       npm run prisma:seed:once:vps
 
                       echo "Deployment finished for ${DOMAIN}."
