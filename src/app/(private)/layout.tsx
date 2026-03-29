@@ -33,7 +33,7 @@ export default async function PrivateLayout({
   return (
     <div className="d-flex flex-column flex-md-row vh-100 overflow-hidden bg-light">
       <PrivateSidebar email={session.user?.email ?? "Signed user"} />
-      <div className="flex-grow-1 overflow-auto px-3 px-md-4 py-3 py-md-4">
+      <div className="flex-grow-1 overflow-auto px-3 px-md-4 py-3 py-md-4 pt-5 pt-md-4">
         <div className="container-xxl mx-auto">
           {children}
         </div>

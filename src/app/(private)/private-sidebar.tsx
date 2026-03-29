@@ -70,8 +70,8 @@ export default function PrivateSidebar({ email }: PrivateSidebarProps) {
       </aside>
 
       <nav
-        className="d-flex d-md-none bg-dark text-white px-3 py-2 align-items-center justify-content-between sticky-top"
-        style={{ zIndex: show ? 0 : 1030 }}
+        className="d-flex d-md-none bg-dark text-white px-3 py-2 align-items-center justify-content-between"
+        style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 1030 }}
       >
         <div className="d-flex flex-column lh-1">
           <span className="text-uppercase text-secondary small">Private</span>
