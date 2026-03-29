@@ -150,28 +150,43 @@ jobs:
 
                       echo "=== Ensuring DB role '${DB_USER}' and database '${DB_NAME}' exist ==="
                       sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" up -d db
-                      sleep 5
 
-                      # Create the role if it doesn't exist (ignore "already exists" errors)
+                      # Wait for database to be healthy instead of a fixed sleep
+                      echo "Waiting for database to be healthy..."
+                      db_wait=0
+                      db_max=30
+                      while [ "${db_wait}" -lt "${db_max}" ]; do
+                        db_health="$(sudo docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' minicms-db 2>/dev/null || echo unknown)"
+                        if [ "${db_health}" = "healthy" ]; then
+                          echo "Database is healthy."
+                          break
+                        fi
+                        sleep 2
+                        db_wait=$((db_wait + 1))
+                      done
+                      if [ "${db_wait}" -ge "${db_max}" ]; then
+                        echo "ERROR: Database did not become healthy in time." >&2
+                        sudo docker logs minicms-db --tail=30 || true
+                        exit 1
+                      fi
+
+                      # Create the role if it doesn't exist — fail deployment on error
                       sudo docker exec minicms-db psql -U postgres -c \
-                        "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = '${DB_USER}') THEN CREATE ROLE \"${DB_USER}\" LOGIN PASSWORD '${DB_PASS}'; END IF; END \$\$;" 2>&1 || \
-                        echo "WARNING: Could not create role '${DB_USER}' via postgres superuser (see above)"
+                        "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = '${DB_USER}') THEN CREATE ROLE \"${DB_USER}\" LOGIN PASSWORD '${DB_PASS}'; END IF; END \$\$;"
 
                       # Also update password in case it changed
                       sudo docker exec minicms-db psql -U postgres -c \
-                        "ALTER ROLE \"${DB_USER}\" WITH LOGIN PASSWORD '${DB_PASS}';" 2>&1 || \
-                        echo "WARNING: Could not update role password (see above)"
+                        "ALTER ROLE \"${DB_USER}\" WITH LOGIN PASSWORD '${DB_PASS}';"
 
                       # Grant superuser so Prisma migrations work
                       sudo docker exec minicms-db psql -U postgres -c \
-                        "ALTER ROLE \"${DB_USER}\" WITH SUPERUSER;" 2>&1 || true
+                        "ALTER ROLE \"${DB_USER}\" WITH SUPERUSER;"
 
                       # Create the database if missing
                       sudo docker exec minicms-db psql -U postgres -c \
                         "SELECT 1 FROM pg_database WHERE datname = '${DB_NAME}';" | grep -q 1 || \
                         sudo docker exec minicms-db psql -U postgres -c \
-                          "CREATE DATABASE \"${DB_NAME}\" OWNER \"${DB_USER}\";" 2>&1 || \
-                        echo "WARNING: Could not create database '${DB_NAME}' (see above)"
+                          "CREATE DATABASE \"${DB_NAME}\" OWNER \"${DB_USER}\";"
 
                       # Run Prisma migrations before starting the app
                       echo "Running Prisma migrations..."
@@ -189,7 +204,7 @@ jobs:
                         " 2>&1 || \
                         echo "WARNING: Prisma migrate failed — check logs"
 
-                      sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" build --pull
+                      sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" build --pull --no-cache
                       sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" up -d --remove-orphans
 
                       # Wait for app readiness
@@ -236,15 +251,10 @@ jobs:
                       echo "Running prisma seed..."
                       cd "${APP_DIR}"
 
-                      # Ensure DATABASE_URL in .env uses the host-accessible port (5434)
-                      # matching the docker-compose port mapping, so host-side tools
-                      # (prisma db push, seed) connect to the containerised database.
+                      # Pass DATABASE_URL via env var instead of modifying .env,
+                      # so the app container keeps using DATABASE_URL_DOCKER on restart.
                       HOST_DB_URL="postgresql://${DB_USER}:${DB_PASS}@127.0.0.1:5434/${DB_NAME}?schema=public"
-                      if sudo grep -q '^DATABASE_URL=' "${APP_DIR}/.env"; then
-                        sudo sed -i "s|^DATABASE_URL=.*|DATABASE_URL=${HOST_DB_URL}|" "${APP_DIR}/.env"
-                      else
-                        echo "DATABASE_URL=${HOST_DB_URL}" | sudo tee -a "${APP_DIR}/.env" > /dev/null
-                      fi
+                      export DATABASE_URL="${HOST_DB_URL}"
 
                       npm run prisma:seed:once:vps
 
