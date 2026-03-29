@@ -174,11 +174,11 @@ jobs:
                       # Fall back to "postgres" only if POSTGRES_USER was never set (default image behavior).
                       PG_SUPERUSER="${DB_USER}"
 
-                      # Verify we can connect as the superuser via local socket (trust auth)
-                      sudo docker exec minicms-db psql -U "${PG_SUPERUSER}" -c "SELECT 1;" > /dev/null 2>&1 || {
+                      # Verify we can connect as the superuser (use the 'postgres' maintenance DB which always exists)
+                      sudo docker exec minicms-db psql -U "${PG_SUPERUSER}" -d postgres -c "SELECT 1;" > /dev/null 2>&1 || {
                         echo "Cannot connect as '${PG_SUPERUSER}'; trying 'postgres' as fallback..."
                         PG_SUPERUSER="postgres"
-                        sudo docker exec minicms-db psql -U "${PG_SUPERUSER}" -c "SELECT 1;" > /dev/null || {
+                        sudo docker exec minicms-db psql -U "${PG_SUPERUSER}" -d postgres -c "SELECT 1;" > /dev/null || {
                           echo "ERROR: Cannot connect to database as either '${DB_USER}' or 'postgres'." >&2
                           exit 1
                         }
@@ -187,27 +187,27 @@ jobs:
 
                       # Create the role if it doesn't exist — fail deployment on error
                       if [ "${PG_SUPERUSER}" != "${DB_USER}" ]; then
-                        sudo docker exec minicms-db psql -U "${PG_SUPERUSER}" -c \
+                        sudo docker exec minicms-db psql -U "${PG_SUPERUSER}" -d postgres -c \
                           "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = '${DB_USER}') THEN CREATE ROLE \"${DB_USER}\" LOGIN PASSWORD '${DB_PASS}'; END IF; END \$\$;"
                       fi
 
                       # Update password to match current .env (in case it changed since volume was created)
-                      sudo docker exec minicms-db psql -U "${PG_SUPERUSER}" -c \
+                      sudo docker exec minicms-db psql -U "${PG_SUPERUSER}" -d postgres -c \
                         "ALTER ROLE \"${DB_USER}\" WITH LOGIN PASSWORD '${DB_PASS}';"
 
                       # Grant superuser so Prisma migrations work
-                      sudo docker exec minicms-db psql -U "${PG_SUPERUSER}" -c \
+                      sudo docker exec minicms-db psql -U "${PG_SUPERUSER}" -d postgres -c \
                         "ALTER ROLE \"${DB_USER}\" WITH SUPERUSER;"
 
                       # Create the database if missing
-                      sudo docker exec minicms-db psql -U "${PG_SUPERUSER}" -c \
+                      sudo docker exec minicms-db psql -U "${PG_SUPERUSER}" -d postgres -c \
                         "SELECT 1 FROM pg_database WHERE datname = '${DB_NAME}';" | grep -q 1 || \
-                        sudo docker exec minicms-db psql -U "${PG_SUPERUSER}" -c \
+                        sudo docker exec minicms-db psql -U "${PG_SUPERUSER}" -d postgres -c \
                           "CREATE DATABASE \"${DB_NAME}\" OWNER \"${DB_USER}\";"
 
                       # Run Prisma migrations before starting the app
                       echo "Running Prisma migrations..."
-                      MIGRATE_DB_URL="postgresql://${DB_USER}:${DB_PASS}@db:5432/${DB_NAME}?schema=public"
+                      MIGRATE_DB_URL="postgresql://${DB_USER}:${DB_PASS}@minicms-db:5432/${DB_NAME}?schema=public"
                       sudo docker run --rm \
                         --network vps-network \
                         -e DB_URL="${MIGRATE_DB_URL}" \
