@@ -1,128 +1,321 @@
 "use client";
 
-import React from "react";
-import { Container, Card, Badge, Button, Row, Col } from "react-bootstrap";
+import React, { useState, useEffect, useCallback } from "react";
+import {
+    Container,
+    Card,
+    Badge,
+    Button,
+    Form,
+    Spinner,
+    Modal,
+} from "react-bootstrap";
 import Link from "next/link";
 
-type MetricInsight = {
-  trend: "better" | "worsen";
-  percent: number;
-};
-
 type EventRow = {
-  id: string;
-  name: string;
-  tags: string[];
-  expectedEffect: "POSITIVE" | "NEGATIVE";
-  startDate: Date | string;
-  endDate: Date | string;
-  descriptionHtml: string;
+    id: string;
+    name: string;
+    title: string;
+    tags: string[];
+    expectedEffect: "POSITIVE" | "NEGATIVE";
+    visibility: "PUBLISHED" | "NOT_PUBLIC" | "PRIVATE";
+    startDate: string;
+    endDate: string;
+    descriptionHtml: string;
+    categories: Array<{ id: string; name: string; slug: string }>;
 };
 
-type Props = {
-  events: EventRow[];
-  stressInsights: Record<string, MetricInsight>;
-  respirationInsights: Record<string, MetricInsight>;
-  bodyBatteryInsights: Record<string, MetricInsight>;
+type PaginationInfo = {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
 };
 
-function toDateLabel(value: Date | string) {
-  return new Date(value).toISOString().slice(0, 10);
+type ApiResponse = {
+    data: EventRow[];
+    pagination: PaginationInfo;
+};
+
+function toDateLabel(value: string) {
+    return new Date(value).toISOString().slice(0, 10);
 }
 
-export default function ClientEventsView({
-  events,
-  stressInsights,
-  respirationInsights,
-  bodyBatteryInsights
-}: Props) {
-  return (
-    <Container className="py-4">
-      <header className="mb-5">
-        <p className="text-uppercase text-primary fw-bold mb-1">Important Days</p>
-        <h1 className="display-5 fw-bold mb-3">Events Dashboard (React Bootstrap)</h1>
-        <p className="lead text-muted">
-          Create events that may affect your stress, respiration, or body battery trends.
-        </p>
-      </header>
+export default function ClientEventsView() {
+    const [events, setEvents] = useState<EventRow[]>([]);
+    const [pagination, setPagination] = useState<PaginationInfo>({
+        page: 1,
+        pageSize: 10,
+        total: 0,
+        totalPages: 1,
+    });
+    const [search, setSearch] = useState("");
+    const [searchInput, setSearchInput] = useState("");
+    const [loading, setLoading] = useState(true);
+    const [deleteTarget, setDeleteTarget] = useState<EventRow | null>(null);
+    const [deleting, setDeleting] = useState(false);
 
-      <div className="mb-4">
-        <Link href="/private/events/new" passHref legacyBehavior>
-          <Button variant="primary" size="lg">Create Important Day</Button>
-        </Link>
-      </div>
+    const fetchEvents = useCallback(
+        async (page: number, searchQuery: string) => {
+            setLoading(true);
+            try {
+                const params = new URLSearchParams({
+                    page: String(page),
+                    pageSize: "10",
+                });
+                if (searchQuery) params.set("search", searchQuery);
 
-      <section>
-        {events.length === 0 ? (
-          <p className="text-muted">No important days yet.</p>
-        ) : (
-          events.map((event) => {
-            const stress = stressInsights[event.id];
-            const bodyBattery = bodyBatteryInsights[event.id];
-            const respiration = respirationInsights[event.id];
+                const res = await fetch(`/api/events?${params.toString()}`);
+                if (!res.ok) throw new Error("Failed to fetch events");
 
-            return (
-              <Card key={event.id} className="mb-4 shadow-sm border-0">
-                <Card.Body>
-                  <div className="d-flex justify-content-between align-items-center mb-2">
-                    <Card.Title className="mb-0 fw-bold fs-4">{event.name}</Card.Title>
-                    <Badge bg={event.expectedEffect === "POSITIVE" ? "success" : "danger"} className="p-2">
-                      {event.expectedEffect === "POSITIVE" ? "Positive" : "Negative"}
-                    </Badge>
-                  </div>
+                const data: ApiResponse = await res.json();
+                setEvents(data.data);
+                setPagination(data.pagination);
+            } catch {
+                setEvents([]);
+            } finally {
+                setLoading(false);
+            }
+        },
+        [],
+    );
 
-                  <Card.Subtitle className="mb-3 text-muted">
-                    {toDateLabel(event.startDate)}
-                    {toDateLabel(event.startDate) !== toDateLabel(event.endDate)
-                      ? ` - ${toDateLabel(event.endDate)}`
-                      : ""}
-                  </Card.Subtitle>
+    useEffect(() => {
+        void fetchEvents(1, "");
+    }, [fetchEvents]);
 
-                  {event.descriptionHtml && (
-                    <div 
-                      className="mb-4 text-dark lh-lg" 
-                      dangerouslySetInnerHTML={{ __html: event.descriptionHtml }} 
+    function handleSearch(e: React.FormEvent) {
+        e.preventDefault();
+        setSearch(searchInput);
+        void fetchEvents(1, searchInput);
+    }
+
+    function handlePageChange(newPage: number) {
+        void fetchEvents(newPage, search);
+    }
+
+    async function handleDelete() {
+        if (!deleteTarget) return;
+        setDeleting(true);
+        try {
+            const res = await fetch(`/api/events/${deleteTarget.id}`, {
+                method: "DELETE",
+            });
+            if (!res.ok) throw new Error("Failed to delete");
+            setDeleteTarget(null);
+            void fetchEvents(pagination.page, search);
+        } catch {
+            alert("Failed to delete event");
+        } finally {
+            setDeleting(false);
+        }
+    }
+
+    return (
+        <Container className="py-4">
+            <header className="mb-5">
+                <p className="text-uppercase text-primary fw-bold mb-1">
+                    Important Days
+                </p>
+                <h1 className="display-5 fw-bold mb-3">Events Dashboard</h1>
+                <p className="lead text-muted">
+                    Create events that may affect your stress, respiration, or
+                    body battery trends.
+                </p>
+            </header>
+
+            <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+                <Link
+                    href="/private/events/new"
+                    className="btn btn-primary btn-lg"
+                >
+                    Create Important Day
+                </Link>
+                <Form
+                    onSubmit={handleSearch}
+                    className="d-flex gap-2"
+                    style={{ maxWidth: 360 }}
+                >
+                    <Form.Control
+                        type="text"
+                        placeholder="Search events..."
+                        value={searchInput}
+                        onChange={(e) => setSearchInput(e.target.value)}
                     />
-                  )}
+                    <Button type="submit" variant="outline-secondary">
+                        Search
+                    </Button>
+                </Form>
+            </div>
 
-                  {(stress || bodyBattery || respiration) && (
-                    <div className="mb-4 p-3 bg-light rounded-3 border-0">
-                      <p className="fw-bold mb-2 small text-uppercase text-secondary">Metric Insights</p>
-                      {stress && (
-                        <p className="mb-1">
-                          <span>Stress:</span> Trend turned <Badge bg={stress.trend === "better" ? "success" : "danger"} className="mx-1">{stress.trend}</Badge> by <strong>{stress.percent.toFixed(1)}%</strong>
-                        </p>
-                      )}
+            {loading ? (
+                <div className="text-center py-5">
+                    <Spinner animation="border" />
+                </div>
+            ) : events.length === 0 ? (
+                <p className="text-muted">No important days found.</p>
+            ) : (
+                <>
+                    <p className="text-muted small mb-3">
+                        Showing{" "}
+                        {(pagination.page - 1) * pagination.pageSize + 1}–
+                        {Math.min(
+                            pagination.page * pagination.pageSize,
+                            pagination.total,
+                        )}{" "}
+                        of {pagination.total}
+                    </p>
 
-                      {bodyBattery && (
-                        <p className="mb-1">
-                          <span>Body Battery:</span> Trend turned <Badge bg={bodyBattery.trend === "better" ? "success" : "danger"} className="mx-1">{bodyBattery.trend}</Badge> by <strong>{bodyBattery.percent.toFixed(1)}%</strong>
-                        </p>
-                      )}
+                    {events.map((event) => (
+                        <Card
+                            key={event.id}
+                            className="mb-4 shadow-sm border-0"
+                        >
+                            <Card.Body>
+                                <div className="d-flex justify-content-between align-items-center mb-2">
+                                    <Card.Title className="mb-0 fw-bold fs-4">
+                                        {event.name}
+                                    </Card.Title>
+                                    <div className="d-flex gap-2">
+                                        <Badge
+                                            bg={
+                                                event.expectedEffect ===
+                                                "POSITIVE"
+                                                    ? "success"
+                                                    : "danger"
+                                            }
+                                            className="p-2"
+                                        >
+                                            {event.expectedEffect === "POSITIVE"
+                                                ? "Positive"
+                                                : "Negative"}
+                                        </Badge>
+                                        <Badge bg="secondary" className="p-2">
+                                            {event.visibility.replace("_", " ")}
+                                        </Badge>
+                                    </div>
+                                </div>
 
-                      {respiration && (
-                        <p className="mb-0">
-                          <span>Respiration:</span> Trend turned <Badge bg={respiration.trend === "better" ? "success" : "danger"} className="mx-1">{respiration.trend}</Badge> by <strong>{respiration.percent.toFixed(1)}%</strong>
-                        </p>
-                      )}
-                    </div>
-                  )}
+                                <Card.Subtitle className="mb-3 text-muted">
+                                    {toDateLabel(event.startDate)}
+                                    {toDateLabel(event.startDate) !==
+                                    toDateLabel(event.endDate)
+                                        ? ` – ${toDateLabel(event.endDate)}`
+                                        : ""}
+                                </Card.Subtitle>
 
-                  <div className="d-flex flex-wrap gap-2 mb-3">
-                    {event.tags.map((tag) => (
-                      <Badge bg="secondary" pill key={tag}>{tag}</Badge>
+                                {event.descriptionHtml && (
+                                    <div
+                                        className="mb-3 text-dark"
+                                        style={{
+                                            maxHeight: "100px",
+                                            overflow: "hidden",
+                                            maskImage:
+                                                "linear-gradient(to bottom, black 60%, transparent)",
+                                            WebkitMaskImage:
+                                                "linear-gradient(to bottom, black 60%, transparent)",
+                                        }}
+                                        dangerouslySetInnerHTML={{
+                                            __html: event.descriptionHtml,
+                                        }}
+                                    />
+                                )}
+
+                                <div className="d-flex flex-wrap gap-2 mb-3">
+                                    {event.tags.map((tag) => (
+                                        <Badge
+                                            bg="info"
+                                            text="dark"
+                                            pill
+                                            key={tag}
+                                        >
+                                            {tag}
+                                        </Badge>
+                                    ))}
+                                </div>
+
+                                <div className="d-flex flex-wrap gap-2">
+                                    <Link
+                                        href={`/private/events/${event.id}`}
+                                        className="btn btn-outline-primary btn-sm"
+                                    >
+                                        View Details
+                                    </Link>
+                                    <Link
+                                        href={`/private/events/${event.id}/edit`}
+                                        className="btn btn-outline-secondary btn-sm"
+                                    >
+                                        Edit
+                                    </Link>
+                                    <Button
+                                        variant="outline-danger"
+                                        size="sm"
+                                        onClick={() => setDeleteTarget(event)}
+                                    >
+                                        Delete
+                                    </Button>
+                                </div>
+                            </Card.Body>
+                        </Card>
                     ))}
-                  </div>
 
-                  <Link href={`/private/events/${event.id}`} passHref legacyBehavior>
-                    <Button variant="outline-primary">View Insights Details</Button>
-                  </Link>
-                </Card.Body>
-              </Card>
-            );
-          })
-        )}
-      </section>
-    </Container>
-  );
+                    <nav className="d-flex justify-content-center align-items-center gap-3 mt-4">
+                        <Button
+                            variant="outline-secondary"
+                            size="sm"
+                            disabled={pagination.page <= 1}
+                            onClick={() =>
+                                handlePageChange(pagination.page - 1)
+                            }
+                        >
+                            ← Previous
+                        </Button>
+                        <span className="text-muted small">
+                            Page {pagination.page} of {pagination.totalPages}
+                        </span>
+                        <Button
+                            variant="outline-secondary"
+                            size="sm"
+                            disabled={pagination.page >= pagination.totalPages}
+                            onClick={() =>
+                                handlePageChange(pagination.page + 1)
+                            }
+                        >
+                            Next →
+                        </Button>
+                    </nav>
+                </>
+            )}
+
+            <Modal
+                show={!!deleteTarget}
+                onHide={() => setDeleteTarget(null)}
+                centered
+            >
+                <Modal.Header closeButton>
+                    <Modal.Title>Delete Event</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    Are you sure you want to delete{" "}
+                    <strong>{deleteTarget?.name}</strong>? This action cannot be
+                    undone.
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button
+                        variant="secondary"
+                        onClick={() => setDeleteTarget(null)}
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        variant="danger"
+                        onClick={() => void handleDelete()}
+                        disabled={deleting}
+                    >
+                        {deleting ? "Deleting..." : "Delete"}
+                    </Button>
+                </Modal.Footer>
+            </Modal>
+        </Container>
+    );
 }

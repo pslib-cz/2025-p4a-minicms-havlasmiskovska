@@ -2,18 +2,10 @@
 
 ## Data model
 
-
 ## Public section requirements
 
-
-## SEO requirements DONE
-- Add dynamic metadata generated from content (`generateMetadata` for list/detail pages).
-- Add OpenGraph metadata.
-- Add canonical URLs (`alternates.canonical`).
-- Add `sitemap.xml` route (`src/app/sitemap.ts`).
-- Add `robots.txt` route (`src/app/robots.ts`).
-
 ## Dashboard architecture and features
+
 - Refactor dashboard data operations to communicate via Route Handlers API (assignment requires dashboard <-> backend via API).
 - Ensure dashboard core management views are implemented as Client Components where required by assignment wording.
 - Add pagination to own-content list in dashboard (`/private/events`).
@@ -21,32 +13,33 @@
 - Add content delete functionality.
 
 ## API (Route Handlers)
+
 - Done: Full CRUD Route Handlers for `ImportantEvent` are implemented.
-  - `GET` list: `/api/events`
-  - `GET` detail: `/api/events/[id]`
-  - `POST` create: `/api/events`
-  - `PUT` update: `/api/events/[id]`
-  - `PATCH` partial update: `/api/events/[id]`
-  - `DELETE` remove: `/api/events/[id]`
+    - `GET` list: `/api/events`
+    - `GET` detail: `/api/events/[id]`
+    - `POST` create: `/api/events`
+    - `PUT` update: `/api/events/[id]`
+    - `PATCH` partial update: `/api/events/[id]`
+    - `DELETE` remove: `/api/events/[id]`
 - Done: auth/session checks, ownership checks, and server-side validation are enforced in all CRUD handlers.
 
-## UI library requirement DONE
-- Integrate one required UI component library (React Bootstrap, PrimeReact, Mantine, MUI, Ant Design, Fluent UI, NextUI, or Carbon).
-
 ## Analytics + consent
+
 - Integrate at least one analytics tool (Google Analytics / Clarity / Matomo / equivalent) and verify pageview tracking.
 - Add cookie consent flow for analytics cookies and keep app functional when consent is denied.
 
 ## Deployment/discoverability evidence
+
 - Add Lighthouse audit evidence (notes or screenshot reference in docs).
 - Add deployment info and post-deployment setup evidence for:
-  - Google Search Console
-  - Bing Webmaster Tools
+    - Google Search Console
+    - Bing Webmaster Tools
 
 ## Documentation and setup
+
 - Add `.env.example` (currently missing).
 - Replace placeholder `README.md` with full required documentation:
-  - app description
-  - data model
-  - feature list
-  - run/setup instructions
+    - app description
+    - data model
+    - feature list
+    - run/setup instructions

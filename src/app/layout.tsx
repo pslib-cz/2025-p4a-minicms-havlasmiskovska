@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./globals.css";
+import CookieConsent from "@/components/CookieConsent";
+import ClarityScript from "@/components/ClarityScript";
 
 const geistSans = Geist({
     variable: "--font-geist-sans",
@@ -13,14 +15,17 @@ const geistMono = Geist_Mono({
     subsets: ["latin"],
 });
 
-const BASE_URL = process.env.NEXTAUTH_URL ?? "https://cms.144-91-77-107.sslip.io";
+const BASE_URL =
+    process.env.NEXTAUTH_URL ?? "https://cms.144-91-77-107.sslip.io";
+const CLARITY_ID = process.env.NEXT_PUBLIC_CLARITY_ID ?? "";
 
 export const metadata: Metadata = {
     title: {
         default: "Mini CMS",
         template: "%s | Mini CMS",
     },
-    description: "Mini CMS is a personal health snapshot dashboard for tracking stress, body battery, respiration, and important life events.",
+    description:
+        "Mini CMS is a personal health snapshot dashboard for tracking stress, body battery, respiration, and important life events.",
     metadataBase: new URL(BASE_URL),
     openGraph: {
         siteName: "Mini CMS",
@@ -28,7 +33,8 @@ export const metadata: Metadata = {
         locale: "cs_CZ",
         url: BASE_URL,
         title: "Mini CMS",
-        description: "Mini CMS is a personal health snapshot dashboard for tracking stress, body battery, respiration, and important life events.",
+        description:
+            "Mini CMS is a personal health snapshot dashboard for tracking stress, body battery, respiration, and important life events.",
     },
     alternates: {
         canonical: BASE_URL,
@@ -44,6 +50,8 @@ export default function RootLayout({
         <html lang="en">
             <body className={`${geistSans.variable} ${geistMono.variable}`}>
                 {children}
+                <CookieConsent />
+                {CLARITY_ID && <ClarityScript clarityId={CLARITY_ID} />}
             </body>
         </html>
     );
