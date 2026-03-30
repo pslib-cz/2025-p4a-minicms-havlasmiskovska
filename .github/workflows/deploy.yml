@@ -105,7 +105,6 @@ jobs:
                       # Copy all files including dotfiles (e.g. .dockerignore) from staged deploy payload.
                       require_file /tmp/minicms-deploy/package.json
                       require_file /tmp/minicms-deploy/prisma.config.ts
-                      require_file '/tmp/minicms-deploy/src/app/(public)/page.tsx'
 
                       sudo cp -a /tmp/minicms-deploy/. "${APP_DIR}/"
                       printf '%s\n' "${DEPLOY_COMMIT}" | sudo tee "${APP_DIR}/.deploy-commit" > /dev/null
