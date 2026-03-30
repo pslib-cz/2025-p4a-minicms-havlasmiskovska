@@ -3,17 +3,16 @@ import { prisma } from "@/lib/prisma";
 import PublishedDaysList from "./published-days-list";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "http://localhost:3000";
   return {
-    title: "Published Important Days | MiniCMS",
-    description: "Browse important days shared by the community",
+    title: "Published Important Days",
+    description: "Browse important days and milestones shared by the community. Filter by tags, search by name, and explore personal stories.",
     openGraph: {
       title: "Published Important Days",
-      description: "Browse important days shared by the community",
+      description: "Browse important days and milestones shared by the community. Filter by tags, search by name, and explore personal stories.",
       type: "website",
     },
     alternates: {
-      canonical: `${baseUrl}/published-days`,
+      canonical: "/published-days",
     },
   };
 }

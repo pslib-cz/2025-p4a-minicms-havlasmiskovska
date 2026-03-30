@@ -17,10 +17,9 @@ export async function generateMetadata(
   }
 
   const plainTextDescription = event.descriptionHtml.replace(/<[^>]*>?/gm, '').substring(0, 150) + "...";
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "http://localhost:3000";
 
   return {
-    title: `${event.name} | MiniCMS`,
+    title: event.name,
     description: plainTextDescription,
     openGraph: {
       title: event.name,
@@ -30,7 +29,7 @@ export async function generateMetadata(
       tags: event.tags,
     },
     alternates: {
-      canonical: `${baseUrl}/published-days/${id}`,
+      canonical: `/published-days/${id}`,
     },
   };
 }
