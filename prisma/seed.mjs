@@ -56,11 +56,6 @@ const SEEDED_USER = {
     email: "jakub.havlas.022@pslib.cz",
 };
 
-const SYNTHETIC_USER = {
-    name: "Majka",
-    email: "marija.miskovska.022@pslib.cz",
-};
-
 const JAKUB_IMPORTANT_DAYS = [
     {
         title: "GF",
@@ -767,7 +762,6 @@ async function main() {
 
     const seededUserProfilePK = getSeedUserProfilePK(dataDir);
     const csvRowsByFile = loadCsvRowsByFile(dataDir);
-    const usedProfilePKs = collectUsedProfilePKsFromRows(csvRowsByFile);
 
     const user = await ensureSeedUser(seededUserProfilePK);
 
@@ -779,25 +773,6 @@ async function main() {
     console.log(
         `Important days ready for ${SEEDED_USER.email}: ${JAKUB_IMPORTANT_DAYS.length} upserted.`,
     );
-
-    const syntheticUserProfilePK = await getSyntheticUserProfilePK(
-        seededUserProfilePK,
-        usedProfilePKs,
-    );
-    const syntheticUser = await ensureUser(
-        SYNTHETIC_USER,
-        syntheticUserProfilePK,
-    );
-    console.log(
-        `Synthetic user ready: ${syntheticUser.email} (userProfilePK=${syntheticUserProfilePK})`,
-    );
-
-    await prisma.importantEvent.updateMany({
-        where: {
-            userProfilePK: syntheticUserProfilePK,
-        },
-        data: { visibility: "PUBLISHED" },
-    });
 
     await prisma.importantEvent.updateMany({
         where: {
@@ -847,19 +822,8 @@ async function main() {
             originalRows,
         );
 
-        const syntheticRows = buildSyntheticRowsForModel(
-            modelConfig,
-            rows,
-            syntheticUserProfilePK,
-            SYNTHETIC_YEARS,
-        );
-        const insertedSynthetic = await insertInChunks(
-            modelConfig.delegate,
-            syntheticRows,
-        );
-
         console.log(
-            `${fileName}: original rows ${rows.length}, inserted ${insertedOriginal}; synthetic rows ${syntheticRows.length}, inserted ${insertedSynthetic}.`,
+            `${fileName}: ${rows.length} rows, inserted ${insertedOriginal}.`,
         );
     }
 }
