@@ -1,18 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+
+function hasConsent() {
+    if (typeof document === "undefined") return true;
+    return document.cookie
+        .split("; ")
+        .some((row) => row.startsWith("analytics_consent="));
+}
 
 export default function CookieConsent() {
-    const [visible, setVisible] = useState(false);
-
-    useEffect(() => {
-        const consent = document.cookie
-            .split("; ")
-            .find((row) => row.startsWith("analytics_consent="));
-        if (!consent) {
-            setVisible(true);
-        }
-    }, []);
+    const [visible, setVisible] = useState(() => !hasConsent());
 
     function respond(granted: boolean) {
         const value = granted ? "granted" : "denied";

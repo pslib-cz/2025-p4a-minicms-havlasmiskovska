@@ -30,11 +30,6 @@
 
 ## Deployment/discoverability evidence
 
-- Add Lighthouse audit evidence (notes or screenshot reference in docs).
-- Add deployment info and post-deployment setup evidence for:
-    - Google Search Console
-    - Bing Webmaster Tools
-
 ## Documentation and setup
 
 - Add `.env.example` (currently missing).
