@@ -7,7 +7,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: "Published Important Days",
     description: "Browse important days and milestones shared by the community. Filter by tags, search by name, and explore personal stories.",
     openGraph: {
-      title: "Published Important Days",
+      title: "Published Important Days | Mini CMS Health Dashboard",
       description: "Browse important days and milestones shared by the community. Filter by tags, search by name, and explore personal stories.",
       type: "website",
     },
