@@ -8,10 +8,10 @@ services:
         env_file:
             - .env
         depends_on:
-            db:
+            minicms-db:
                 condition: service_healthy
         environment:
-            DATABASE_URL_DOCKER: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
+            DATABASE_URL_DOCKER: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@minicms-db:5432/${POSTGRES_DB}?schema=public
             PORT: "3001"
         ports:
             - "3001:3001"
@@ -30,7 +30,7 @@ services:
             retries: 5
             start_period: 20s
 
-    db:
+    minicms-db:
         image: postgres:16
         container_name: minicms-db
         restart: unless-stopped
