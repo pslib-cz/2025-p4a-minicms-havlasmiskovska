@@ -1,3 +1,5 @@
+<img width="747" height="276" alt="image" src="https://github.com/user-attachments/assets/837bff93-f281-46df-b4cd-3e01e0394d2c" />
+
 # Mini CMS — Health Snapshot Dashboard
 
 A personal health-tracking mini CMS built with **Next.js 16**, **Prisma**, **PostgreSQL**, and **React Bootstrap**. Users authenticate via GitHub OAuth, import daily health metrics (stress, respiration, body battery), create "Important Day" events, and analyse how those events correlate with health trends over short, medium, and long-term horizons.
