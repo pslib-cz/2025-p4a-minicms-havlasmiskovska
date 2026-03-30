@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./globals.css";
-import CookieConsent from "@/components/CookieConsent";
-import ClarityScript from "@/components/ClarityScript";
 
 const geistSans = Geist({
     variable: "--font-geist-sans",
@@ -17,7 +15,6 @@ const geistMono = Geist_Mono({
 
 const BASE_URL =
     process.env.NEXTAUTH_URL ?? "https://cms.144-91-77-107.sslip.io";
-const CLARITY_ID = process.env.NEXT_PUBLIC_CLARITY_ID ?? "";
 
 export const metadata: Metadata = {
     title: {
@@ -50,8 +47,6 @@ export default function RootLayout({
         <html lang="en">
             <body className={`${geistSans.variable} ${geistMono.variable}`}>
                 {children}
-                <CookieConsent />
-                {CLARITY_ID && <ClarityScript clarityId={CLARITY_ID} />}
             </body>
         </html>
     );
