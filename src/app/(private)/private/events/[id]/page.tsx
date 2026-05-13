@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import VisibilitySelector from "./visibility-selector";
 import { BSCard, BSBadge } from "@/components/BootstrapUI";
 
+export const dynamic = "force-dynamic";
+
 const DEMO_USER_PROFILE_PK = 100000001;
 
 

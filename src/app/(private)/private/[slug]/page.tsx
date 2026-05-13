@@ -4,6 +4,8 @@ import MetricChart, { type MetricPoint } from "./metric-chart";
 import CombinedChart from "./combined-chart";
 import { BSCard } from "@/components/BootstrapUI";
 
+export const dynamic = "force-dynamic";
+
 const DEMO_USER_PROFILE_PK = 100000001;
 
 

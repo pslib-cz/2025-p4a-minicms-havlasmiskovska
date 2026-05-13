@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 
 import ClientEventsView from "./ClientEventsView";
 
+export const dynamic = "force-dynamic";
+
 const DEMO_USER_PROFILE_PK = 100000001;
 
 type EventsPageProps = {

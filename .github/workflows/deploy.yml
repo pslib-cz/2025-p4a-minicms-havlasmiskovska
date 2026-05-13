@@ -196,6 +196,11 @@ jobs:
                         sudo docker exec minicms-db psql -U "${PG_SUPERUSER}" -d postgres -c \
                           "CREATE DATABASE \"${DB_NAME}\" OWNER \"${DB_USER}\";"
 
+                      # Reset database schema (prototype — clean deploy every time)
+                      echo "Resetting database schema..."
+                      sudo docker exec minicms-db psql -U "${PG_SUPERUSER}" -d "${DB_NAME}" -c \
+                        "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO \"${DB_USER}\";"
+
                       # Run Prisma migrations before starting the app
                       echo "Running Prisma migrations..."
                       MIGRATE_DB_URL="postgresql://${DB_USER}:${DB_PASS}@minicms-db:5432/${DB_NAME}?schema=public"
