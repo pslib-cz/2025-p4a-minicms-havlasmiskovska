@@ -74,6 +74,7 @@ jobs:
                   key: ${{ secrets.VPS_SSH_KEY }}
                   fingerprint: ${{ secrets.VPS_HOST_FINGERPRINT }}
                   envs: ENV_FILE,DEPLOY_COMMIT,APP_DIR,DOMAIN
+                  command_timeout: 30m
                   script: |
                       set -euo pipefail
 
@@ -211,7 +212,7 @@ jobs:
                         " 2>&1 || \
                         echo "WARNING: Prisma migrate failed — check logs"
 
-                      sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" build --pull --no-cache
+                      sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" build --pull
                       sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" up -d --remove-orphans
 
                       # Wait for app readiness
