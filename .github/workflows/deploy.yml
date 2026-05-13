@@ -125,19 +125,9 @@ jobs:
                       require_env POSTGRES_USER
                       require_env POSTGRES_PASSWORD
                       require_env POSTGRES_DB
-                      require_env NEXTAUTH_SECRET
 
                       # Copy docker-compose config and prepare deployment
                       sudo cp "${APP_DIR}/docker-compose.prod.yml" "${APP_DIR}/docker-compose.yml"
-
-                      # Check NEXTAUTH_URL configuration
-                      nextauth_url="$(sudo grep -E '^NEXTAUTH_URL=' "${APP_DIR}/.env" | tail -n1 | cut -d'=' -f2- || true)"
-                      if [[ -z "${nextauth_url}" ]]; then
-                          echo "WARNING: NEXTAUTH_URL is missing in ${APP_DIR}/.env. NextAuth OAuth callback may fail."
-                      elif [[ "${nextauth_url}" =~ localhost|127\.0\.0\.1 ]]; then
-                          echo "WARNING: NEXTAUTH_URL points to localhost in ${APP_DIR}/.env (${nextauth_url})."
-                          echo "Set NEXTAUTH_URL to the public HTTPS domain (for example: https://${DOMAIN})."
-                      fi
 
                       # Build and deploy Docker containers
                       sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" config -q
@@ -149,7 +139,7 @@ jobs:
                       DB_NAME="$(sudo grep -E '^POSTGRES_DB=' "${APP_DIR}/.env" | tail -n1 | cut -d'=' -f2-)"
 
                       echo "=== Ensuring DB role '${DB_USER}' and database '${DB_NAME}' exist ==="
-                      sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" up -d db
+                      sudo docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${APP_DIR}/.env" up -d --remove-orphans db
 
                       # Wait for database to be healthy instead of a fixed sleep
                       echo "Waiting for database to be healthy..."
