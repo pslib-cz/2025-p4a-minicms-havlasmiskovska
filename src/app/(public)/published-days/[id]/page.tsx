@@ -17,7 +17,7 @@ export async function generateMetadata(
   }
 
   const plainTextDescription = event.descriptionHtml.replace(/<[^>]*>?/gm, '').substring(0, 150) + "...";
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "http://localhost:3000";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
   return {
     title: `${event.name} | MiniCMS`,

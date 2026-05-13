@@ -1,10 +1,10 @@
 "use server";
 
-import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+
+const DEMO_USER_PROFILE_PK = 100000001;
 
 type NumberMode = "int" | "float";
 
@@ -43,35 +43,6 @@ function parseDateTimeField(value: FormDataEntryValue | null) {
 }
 
 export async function saveDay(formData: FormData) {
-  let session;
-  try {
-    session = await getServerSession(authOptions);
-  } catch (error) {
-    console.error("[saveDay] Failed to get session:", error);
-    redirect("/private/add-day?error=DatabaseError");
-  }
-
-  const email = session?.user?.email;
-
-  if (!email) {
-    redirect("/private/add-day?error=NotAuthenticated");
-  }
-
-  let user;
-  try {
-    user = await prisma.user.findUnique({
-      where: { email },
-      select: { userProfilePK: true },
-    });
-  } catch (error) {
-    console.error("[saveDay] Failed to query user:", error);
-    redirect("/private/add-day?error=DatabaseError");
-  }
-
-  if (!user?.userProfilePK) {
-    redirect("/register?error=InvalidProfilePK");
-  }
-
   const pkDate = parseDateField(formData.get("pk_date"));
   if (!pkDate) {
     redirect("/private/add-day?error=InvalidDate");
@@ -79,7 +50,7 @@ export async function saveDay(formData: FormData) {
 
   const key = {
     pk_date: pkDate,
-    userProfilePK: user.userProfilePK,
+    userProfilePK: DEMO_USER_PROFILE_PK,
   };
 
   try {

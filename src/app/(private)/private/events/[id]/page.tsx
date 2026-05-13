@@ -1,10 +1,10 @@
-import { getServerSession } from "next-auth";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
+import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import VisibilitySelector from "./visibility-selector";
 import { BSCard, BSBadge } from "@/components/BootstrapUI";
+
+const DEMO_USER_PROFILE_PK = 100000001;
 
 
 type EventDetailPageProps = {
@@ -294,41 +294,20 @@ function analyzeSingleEventImpact(
 export default async function EventDetailPage({ params }: EventDetailPageProps) {
   const { id } = await params;
 
-  const session = await getServerSession(authOptions);
-  if (!session) {
-    redirect("/login");
-  }
-
-  const email = session.user?.email;
-  if (!email) {
-    redirect("/login?error=Callback");
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { email },
+  const event = await prisma.importantEvent.findUnique({
+    where: { id },
     select: {
-      userProfilePK: true,
-      importantEvents: {
-        where: { id },
-        select: {
-          id: true,
-          name: true,
-          tags: true,
-          expectedEffect: true,
-          visibility: true,
-          startDate: true,
-          endDate: true,
-          descriptionHtml: true,
-        },
-      },
+      id: true,
+      name: true,
+      tags: true,
+      expectedEffect: true,
+      visibility: true,
+      startDate: true,
+      endDate: true,
+      descriptionHtml: true,
     },
   });
 
-  if (!user?.userProfilePK) {
-    redirect("/register");
-  }
-
-  const event = user.importantEvents[0];
   if (!event) {
     notFound();
   }
@@ -336,7 +315,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
   const [stressRows, respirationRows, bodyBatteryRows, stressSeriesRows, respirationSeriesRows, bodyBatterySeriesRows] = await Promise.all([
     prisma.stress.findMany({
       where: {
-        userProfilePK: user.userProfilePK,
+        userProfilePK: DEMO_USER_PROFILE_PK,
         pk_date: {
           gte: event.startDate,
           lte: event.endDate,
@@ -362,7 +341,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
     }),
     prisma.respiration.findMany({
       where: {
-        userProfilePK: user.userProfilePK,
+        userProfilePK: DEMO_USER_PROFILE_PK,
         pk_date: {
           gte: event.startDate,
           lte: event.endDate,
@@ -379,7 +358,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
     }),
     prisma.bodyBattery.findMany({
       where: {
-        userProfilePK: user.userProfilePK,
+        userProfilePK: DEMO_USER_PROFILE_PK,
         pk_date: {
           gte: event.startDate,
           lte: event.endDate,
@@ -402,7 +381,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
       },
     }),
     prisma.stress.findMany({
-      where: { userProfilePK: user.userProfilePK },
+      where: { userProfilePK: DEMO_USER_PROFILE_PK },
       orderBy: { pk_date: "asc" },
       select: {
         pk_date: true,
@@ -410,7 +389,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
       },
     }),
     prisma.respiration.findMany({
-      where: { userProfilePK: user.userProfilePK },
+      where: { userProfilePK: DEMO_USER_PROFILE_PK },
       orderBy: { pk_date: "asc" },
       select: {
         pk_date: true,
@@ -418,7 +397,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
       },
     }),
     prisma.bodyBattery.findMany({
-      where: { userProfilePK: user.userProfilePK },
+      where: { userProfilePK: DEMO_USER_PROFILE_PK },
       orderBy: { pk_date: "asc" },
       select: {
         pk_date: true,

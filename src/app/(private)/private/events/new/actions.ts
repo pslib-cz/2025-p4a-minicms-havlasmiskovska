@@ -1,11 +1,11 @@
 "use server";
 
-import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import type { EventVisibility } from "@prisma/client";
+
+const DEMO_USER_PROFILE_PK = 100000001;
 
 function parseTags(value: FormDataEntryValue | null) {
   return String(value ?? "")
@@ -59,22 +59,6 @@ async function createUniqueEventSlug(title: string) {
 }
 
 export async function createImportantEvent(formData: FormData) {
-  const session = await getServerSession(authOptions);
-  const email = session?.user?.email;
-
-  if (!email) {
-    redirect("/login");
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { email },
-    select: { userProfilePK: true },
-  });
-
-  if (!user?.userProfilePK) {
-    redirect("/register");
-  }
-
   const name = String(formData.get("name") ?? "").trim();
   const tags = parseTags(formData.get("tags"));
   const expectedEffect = String(formData.get("expectedEffect") ?? "NEGATIVE") === "POSITIVE"
@@ -113,7 +97,7 @@ export async function createImportantEvent(formData: FormData) {
   });
 
   await prisma.user.update({
-    where: { userProfilePK: user.userProfilePK },
+    where: { userProfilePK: DEMO_USER_PROFILE_PK },
     data: {
       importantEvents: {
         create: {

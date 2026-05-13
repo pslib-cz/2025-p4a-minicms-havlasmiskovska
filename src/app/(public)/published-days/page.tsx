@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import PublishedDaysList from "./published-days-list";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "http://localhost:3000";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   return {
     title: "Published Important Days | MiniCMS",
     description: "Browse important days shared by the community",

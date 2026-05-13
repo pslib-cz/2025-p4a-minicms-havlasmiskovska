@@ -1,31 +1,9 @@
-import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 import type { EventVisibility } from "@prisma/client";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export async function PATCH(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: { userProfilePK: true },
-    });
-
-    if (!user?.userProfilePK) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
-    }
-
     const body = await request.json() as {
       eventId: string;
       visibility: string;
@@ -48,16 +26,15 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // Verify the event belongs to the user
     const event = await prisma.importantEvent.findUnique({
       where: { id: eventId },
-      select: { userProfilePK: true },
+      select: { id: true },
     });
 
-    if (!event || event.userProfilePK !== user.userProfilePK) {
+    if (!event) {
       return NextResponse.json(
-        { error: "Event not found or does not belong to user" },
-        { status: 403 }
+        { error: "Event not found" },
+        { status: 404 }
       );
     }
 

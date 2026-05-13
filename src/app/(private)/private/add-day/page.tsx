@@ -1,7 +1,3 @@
-import { getServerSession } from "next-auth";
-import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
 import { saveDay } from "./actions";
 import { BSCard } from "@/components/BootstrapUI";
 
@@ -20,32 +16,12 @@ function getErrorMessage(errorCode: string | undefined) {
   const messages: Record<string, string> = {
     InvalidDate: "Please enter a valid date.",
     DatabaseError: "Database connection failed. The server cannot reach the database — this is not your fault. Please try again later or contact the administrator.",
-    NotAuthenticated: "Your session has expired or is invalid. Please sign in again.",
   };
 
   return messages[errorCode] ?? "Could not save this day. Please check your values and try again.";
 }
 
 export default async function AddDayPage({ searchParams }: AddDayPageProps) {
-  const session = await getServerSession(authOptions);
-  if (!session) {
-    redirect("/login");
-  }
-
-  const email = session.user?.email;
-  if (!email) {
-    redirect("/login?error=Callback");
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { email },
-    select: { userProfilePK: true },
-  });
-
-  if (!user?.userProfilePK) {
-    redirect("/register");
-  }
-
   const resolvedSearchParams = (await searchParams) ?? {};
   const wasSaved = resolvedSearchParams.success === "1";
   const errorMessage = getErrorMessage(resolvedSearchParams.error);

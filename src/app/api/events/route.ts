@@ -1,7 +1,5 @@
-import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 import type { EventVisibility, Prisma } from "@prisma/client";
-import { authOptions } from "@/lib/auth";
 import {
   buildCategoryConnectOrCreate,
   createUniqueEventSlug,
@@ -9,36 +7,10 @@ import {
 } from "@/lib/important-event-api";
 import { prisma } from "@/lib/prisma";
 
-async function getAuthenticatedUserProfilePK() {
-  const session = await getServerSession(authOptions);
-  const email = session?.user?.email;
-
-  if (!email) {
-    return { ok: false as const, response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { email },
-    select: { userProfilePK: true },
-  });
-
-  if (!user?.userProfilePK) {
-    return {
-      ok: false as const,
-      response: NextResponse.json({ error: "User profile is not initialized." }, { status: 403 }),
-    };
-  }
-
-  return { ok: true as const, userProfilePK: user.userProfilePK };
-}
+const DEMO_USER_PROFILE_PK = 100000001;
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await getAuthenticatedUserProfilePK();
-    if (!auth.ok) {
-      return auth.response;
-    }
-
     const { searchParams } = new URL(request.url);
     const page = Math.max(Number.parseInt(searchParams.get("page") ?? "1", 10) || 1, 1);
     const pageSize = Math.min(
@@ -53,7 +25,7 @@ export async function GET(request: NextRequest) {
         : null;
 
     const where: Prisma.ImportantEventWhereInput = {
-      userProfilePK: auth.userProfilePK,
+      userProfilePK: DEMO_USER_PROFILE_PK,
       ...(search
         ? {
             OR: [
@@ -102,11 +74,6 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await getAuthenticatedUserProfilePK();
-    if (!auth.ok) {
-      return auth.response;
-    }
-
     const body = (await request.json()) as unknown;
     const validation = validateEventPayload(body, { partial: false });
 
@@ -127,7 +94,7 @@ export async function POST(request: NextRequest) {
 
     const created = await prisma.importantEvent.create({
       data: {
-        userProfilePK: auth.userProfilePK,
+        userProfilePK: DEMO_USER_PROFILE_PK,
         title: eventName,
         name: eventName,
         slug,

@@ -1,6 +1,4 @@
-import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
-import { authOptions } from "@/lib/auth";
 import {
   buildCategoryConnectOrCreate,
   createUniqueEventSlug,
@@ -14,30 +12,7 @@ type RouteContext = {
   }>;
 };
 
-async function getAuthenticatedUserProfilePK() {
-  const session = await getServerSession(authOptions);
-  const email = session?.user?.email;
-
-  if (!email) {
-    return { ok: false as const, response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { email },
-    select: { userProfilePK: true },
-  });
-
-  if (!user?.userProfilePK) {
-    return {
-      ok: false as const,
-      response: NextResponse.json({ error: "User profile is not initialized." }, { status: 403 }),
-    };
-  }
-
-  return { ok: true as const, userProfilePK: user.userProfilePK };
-}
-
-async function getOwnedEvent(id: string, userProfilePK: number) {
+async function getEvent(id: string) {
   const event = await prisma.importantEvent.findUnique({
     where: { id },
     include: {
@@ -55,27 +30,18 @@ async function getOwnedEvent(id: string, userProfilePK: number) {
     return { ok: false as const, response: NextResponse.json({ error: "Event not found." }, { status: 404 }) };
   }
 
-  if (event.userProfilePK !== userProfilePK) {
-    return { ok: false as const, response: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
-  }
-
   return { ok: true as const, event };
 }
 
 export async function GET(_: NextRequest, context: RouteContext) {
   try {
-    const auth = await getAuthenticatedUserProfilePK();
-    if (!auth.ok) {
-      return auth.response;
-    }
-
     const { id } = await context.params;
-    const owned = await getOwnedEvent(id, auth.userProfilePK);
-    if (!owned.ok) {
-      return owned.response;
+    const result = await getEvent(id);
+    if (!result.ok) {
+      return result.response;
     }
 
-    return NextResponse.json({ data: owned.event });
+    return NextResponse.json({ data: result.event });
   } catch (error) {
     console.error("Failed to fetch event detail:", error);
     return NextResponse.json({ error: "Failed to fetch event detail." }, { status: 500 });
@@ -83,15 +49,10 @@ export async function GET(_: NextRequest, context: RouteContext) {
 }
 
 async function updateEvent(request: NextRequest, context: RouteContext, partial: boolean) {
-  const auth = await getAuthenticatedUserProfilePK();
-  if (!auth.ok) {
-    return auth.response;
-  }
-
   const { id } = await context.params;
-  const owned = await getOwnedEvent(id, auth.userProfilePK);
-  if (!owned.ok) {
-    return owned.response;
+  const result = await getEvent(id);
+  if (!result.ok) {
+    return result.response;
   }
 
   const body = (await request.json()) as unknown;
@@ -103,22 +64,22 @@ async function updateEvent(request: NextRequest, context: RouteContext, partial:
 
   const payload = validation.value;
 
-  const nextName = payload.name ?? payload.title ?? owned.event.name;
-  const nextStartDate = payload.startDate ?? owned.event.startDate;
-  const nextEndDate = payload.endDate ?? owned.event.endDate;
+  const nextName = payload.name ?? payload.title ?? result.event.name;
+  const nextStartDate = payload.startDate ?? result.event.startDate;
+  const nextEndDate = payload.endDate ?? result.event.endDate;
 
   if (nextEndDate.getTime() < nextStartDate.getTime()) {
     return NextResponse.json({ error: "endDate cannot be before startDate." }, { status: 400 });
   }
 
-  let nextSlug = owned.event.slug;
+  let nextSlug = result.event.slug;
   if (payload.slug) {
     nextSlug = payload.slug;
   } else if (payload.name || payload.title) {
-    nextSlug = await createUniqueEventSlug(prisma, nextName, owned.event.id);
+    nextSlug = await createUniqueEventSlug(prisma, nextName, result.event.id);
   }
 
-  const nextTags = payload.tags ?? owned.event.tags;
+  const nextTags = payload.tags ?? result.event.tags;
   const categoryOps =
     payload.tags !== undefined
       ? {
@@ -128,16 +89,16 @@ async function updateEvent(request: NextRequest, context: RouteContext, partial:
       : undefined;
 
   const updated = await prisma.importantEvent.update({
-    where: { id: owned.event.id },
+    where: { id: result.event.id },
     data: {
       title: nextName,
       name: nextName,
       slug: nextSlug,
-      publishDate: payload.publishDate ?? owned.event.publishDate,
+      publishDate: payload.publishDate ?? result.event.publishDate,
       tags: nextTags,
-      expectedEffect: payload.expectedEffect ?? owned.event.expectedEffect,
-      visibility: payload.visibility ?? owned.event.visibility,
-      descriptionHtml: payload.descriptionHtml ?? owned.event.descriptionHtml,
+      expectedEffect: payload.expectedEffect ?? result.event.expectedEffect,
+      visibility: payload.visibility ?? result.event.visibility,
+      descriptionHtml: payload.descriptionHtml ?? result.event.descriptionHtml,
       startDate: nextStartDate,
       endDate: nextEndDate,
       ...(categoryOps ? { categories: categoryOps } : {}),
@@ -176,19 +137,14 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
 export async function DELETE(_: NextRequest, context: RouteContext) {
   try {
-    const auth = await getAuthenticatedUserProfilePK();
-    if (!auth.ok) {
-      return auth.response;
-    }
-
     const { id } = await context.params;
-    const owned = await getOwnedEvent(id, auth.userProfilePK);
-    if (!owned.ok) {
-      return owned.response;
+    const result = await getEvent(id);
+    if (!result.ok) {
+      return result.response;
     }
 
     await prisma.importantEvent.delete({
-      where: { id: owned.event.id },
+      where: { id: result.event.id },
     });
 
     return NextResponse.json({ success: true });

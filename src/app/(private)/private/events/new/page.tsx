@@ -1,8 +1,3 @@
-import { getServerSession } from "next-auth";
-import Link from "next/link";
-import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
 import { createImportantEvent } from "./actions";
 import BootstrapEventForm from "./BootstrapEventForm";
 
@@ -29,25 +24,6 @@ function getErrorMessage(errorCode: string | undefined) {
 }
 
 export default async function NewEventPage({ searchParams }: NewEventPageProps) {
-  const session = await getServerSession(authOptions);
-  if (!session) {
-    redirect("/login");
-  }
-
-  const email = session.user?.email;
-  if (!email) {
-    redirect("/login?error=Callback");
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { email },
-    select: { userProfilePK: true },
-  });
-
-  if (!user?.userProfilePK) {
-    redirect("/register");
-  }
-
   const resolvedSearchParams = (await searchParams) ?? {};
   const errorMessage = getErrorMessage(resolvedSearchParams.error);
 

@@ -1,10 +1,8 @@
-import { getServerSession } from "next-auth";
-import Link from "next/link";
-import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 import ClientEventsView from "./ClientEventsView";
+
+const DEMO_USER_PROFILE_PK = 100000001;
 
 type EventsPageProps = {
   searchParams?: Promise<{
@@ -91,43 +89,22 @@ function computeMetricInsight(
 }
 
 export default async function EventsPage({ searchParams }: EventsPageProps) {
-  const session = await getServerSession(authOptions);
-  if (!session) {
-    redirect("/login");
-  }
-
-  const email = session.user?.email;
-  if (!email) {
-    redirect("/login?error=Callback");
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { email },
+  const events: ImportantEventRow[] = await prisma.importantEvent.findMany({
+    where: { userProfilePK: DEMO_USER_PROFILE_PK },
+    orderBy: { startDate: "desc" },
     select: {
-      userProfilePK: true,
-      importantEvents: {
-        orderBy: { startDate: "desc" },
-        select: {
-          id: true,
-          name: true,
-          tags: true,
-          expectedEffect: true,
-          startDate: true,
-          endDate: true,
-          descriptionHtml: true,
-        },
-      },
+      id: true,
+      name: true,
+      tags: true,
+      expectedEffect: true,
+      startDate: true,
+      endDate: true,
+      descriptionHtml: true,
     },
   });
 
-  if (!user?.userProfilePK) {
-    redirect("/register");
-  }
-
-  const events: ImportantEventRow[] = user.importantEvents;
-
   const stressRows: StressRow[] = await prisma.stress.findMany({
-    where: { userProfilePK: user.userProfilePK },
+    where: { userProfilePK: DEMO_USER_PROFILE_PK },
     orderBy: { pk_date: "asc" },
     select: {
       pk_date: true,
@@ -137,7 +114,7 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
 
   const [respirationRows, bodyBatteryRows] = await Promise.all([
     prisma.respiration.findMany({
-      where: { userProfilePK: user.userProfilePK },
+      where: { userProfilePK: DEMO_USER_PROFILE_PK },
       orderBy: { pk_date: "asc" },
       select: {
         pk_date: true,
@@ -145,7 +122,7 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
       },
     }),
     prisma.bodyBattery.findMany({
-      where: { userProfilePK: user.userProfilePK },
+      where: { userProfilePK: DEMO_USER_PROFILE_PK },
       orderBy: { pk_date: "asc" },
       select: {
         pk_date: true,

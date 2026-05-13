@@ -1,10 +1,10 @@
-import { getServerSession } from "next-auth";
-import { redirect, notFound } from "next/navigation";
-import { authOptions } from "@/lib/auth";
+import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import MetricChart, { type MetricPoint } from "./metric-chart";
 import CombinedChart from "./combined-chart";
 import { BSCard } from "@/components/BootstrapUI";
+
+const DEMO_USER_PROFILE_PK = 100000001;
 
 
 type PrivateSlug = "dashboard" | "stress" | "body-battery" | "respiration";
@@ -133,46 +133,12 @@ function isValidSlug(slug: string): slug is PrivateSlug {
   return slug === "dashboard" || slug === "stress" || slug === "body-battery" || slug === "respiration";
 }
 
-async function resolveTargetUserProfilePK(email: string | null | undefined): Promise<number | null> {
-  let targetUserProfilePK: number | null = null;
-
-  if (email) {
-    const user = await prisma.user.findUnique({
-      where: { email },
-      select: { userProfilePK: true },
-    });
-
-    targetUserProfilePK = user?.userProfilePK ?? null;
-  }
-
-  if (targetUserProfilePK === null) {
-    const [stressFallback, respirationFallback, bodyBatteryFallback] = await Promise.all([
-      prisma.stress.findFirst({
-        select: { userProfilePK: true },
-        orderBy: { pk_date: "desc" },
-      }),
-      prisma.respiration.findFirst({
-        select: { userProfilePK: true },
-        orderBy: { pk_date: "desc" },
-      }),
-      prisma.bodyBattery.findFirst({
-        select: { userProfilePK: true },
-        orderBy: { pk_date: "desc" },
-      }),
-    ]);
-
-    targetUserProfilePK =
-      stressFallback?.userProfilePK ??
-      respirationFallback?.userProfilePK ??
-      bodyBatteryFallback?.userProfilePK ??
-      null;
-  }
-
-  return targetUserProfilePK;
+async function resolveTargetUserProfilePK(): Promise<number> {
+  return DEMO_USER_PROFILE_PK;
 }
 
-async function getMetricSeries(email: string | null | undefined): Promise<MetricSeries> {
-  const targetUserProfilePK = await resolveTargetUserProfilePK(email);
+async function getMetricSeries(): Promise<MetricSeries> {
+  const targetUserProfilePK = await resolveTargetUserProfilePK();
 
   if (targetUserProfilePK === null) {
     return {
@@ -793,14 +759,9 @@ export default async function PrivateSlugPage({ params }: PrivateSlugPageProps) 
     notFound();
   }
 
-  const session = await getServerSession(authOptions);
-  if (!session) {
-    redirect("/login");
-  }
-
-  const userProfilePK = await resolveTargetUserProfilePK(session.user?.email);
+  const userProfilePK = await resolveTargetUserProfilePK();
   const [series, importantEvents] = await Promise.all([
-    getMetricSeries(session.user?.email),
+    getMetricSeries(),
     getImportantEvents(userProfilePK),
   ]);
 

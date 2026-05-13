@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut } from "next-auth/react";
 import { Offcanvas } from "react-bootstrap";
 
 const NAV_ITEMS = [
@@ -15,10 +14,6 @@ const NAV_ITEMS = [
   { href: "/private/respiration", label: "Respiration" },
   { href: "/published-days", label: "Published Days" },
 ];
-
-type PrivateSidebarProps = {
-  email: string;
-};
 
 function NavLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
   return (
@@ -42,7 +37,7 @@ function NavLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () 
   );
 }
 
-export default function PrivateSidebar({ email }: PrivateSidebarProps) {
+export default function PrivateSidebar() {
   const pathname = usePathname();
   const [show, setShow] = useState(false);
 
@@ -50,23 +45,15 @@ export default function PrivateSidebar({ email }: PrivateSidebarProps) {
     <>
       <aside className="d-none d-md-flex flex-column bg-dark text-white p-4 vh-100 sticky-top col-md-5 col-lg-3">
         <div>
-          <p className="text-uppercase text-secondary small fw-bold mb-1">Private</p>
+          <p className="text-uppercase text-secondary small fw-bold mb-1">Demo</p>
           <p className="fs-4 fw-bold text-white mb-4">Health Snapshot</p>
         </div>
 
-        <p className="text-white mb-4 pb-3 border-bottom border-secondary text-truncate" title={email}>
-          {email}
+        <p className="text-white mb-4 pb-3 border-bottom border-secondary text-truncate">
+          John Doe
         </p>
 
         <NavLinks pathname={pathname} />
-
-        <button
-          type="button"
-          className="btn btn-outline-light mt-4 w-100"
-          onClick={() => signOut({ callbackUrl: "/login" })}
-        >
-          Sign Out
-        </button>
       </aside>
 
       <nav
@@ -74,7 +61,7 @@ export default function PrivateSidebar({ email }: PrivateSidebarProps) {
         style={{ zIndex: show ? 0 : 1030 }}
       >
         <div className="d-flex flex-column lh-1">
-          <span className="text-uppercase text-secondary small">Private</span>
+          <span className="text-uppercase text-secondary small">Demo</span>
           <span className="fw-bold text-white">Health Snapshot</span>
         </div>
         <button
@@ -97,29 +84,16 @@ export default function PrivateSidebar({ email }: PrivateSidebarProps) {
       >
         <Offcanvas.Header closeButton closeVariant="white" className="border-bottom border-secondary">
           <Offcanvas.Title className="text-white">
-            <span className="text-uppercase text-secondary small d-block">Private</span>
+            <span className="text-uppercase text-secondary small d-block">Demo</span>
             Health Snapshot
           </Offcanvas.Title>
         </Offcanvas.Header>
         <Offcanvas.Body className="d-flex flex-column p-3">
-  
-        <p className="d-md-block d-lg-none text-white mb-4 pb-3 border-bottom border-secondary text-truncate" title={email} style={{ fontSize: "0.65rem" }}>
-          {email}
-        </p>
-  
-        <p className="d-none d-lg-block text-white small mb-4 pb-3 border-bottom border-secondary text-truncate" title={email}>
-          {email}
-        </p>
+          <p className="text-white small mb-4 pb-3 border-bottom border-secondary">
+            John Doe
+          </p>
 
           <NavLinks pathname={pathname} onNavigate={() => setShow(false)} />
-
-          <button
-            type="button"
-            className="btn btn-outline-light mt-4 w-100"
-            onClick={() => signOut({ callbackUrl: "/login" })}
-          >
-            Sign Out
-          </button>
         </Offcanvas.Body>
       </Offcanvas>
     </>
